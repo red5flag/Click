@@ -1,0 +1,67 @@
+# Person Detection System Configuration
+# Place this file at ./config.toml or ~/.config/person-detect/config.toml
+
+# ============================================================================
+# Camera Settings
+# ============================================================================
+
+# Camera device index (0 for first USB camera, 1 for second, etc.)
+camera_index = 0
+
+# ============================================================================
+# Detection Settings
+# ============================================================================
+
+# Minimum confidence threshold for person detection (0.0 - 1.0)
+# Lower values detect more but with more false positives
+# Higher values are more strict but may miss detections
+confidence_threshold = 0.5
+
+# Intersection over Union threshold for Non-Maximum Suppression (0.0 - 1.0)
+# Higher values suppress fewer overlapping detections
+# Lower values are more aggressive at removing duplicates
+iou_threshold = 0.45
+
+# ============================================================================
+# Recording Settings
+# ============================================================================
+
+# Grace period after person leaves before stopping recording (seconds)
+# During this period, if a person reappears, recording continues
+grace_period_seconds = 10
+
+# Directory to save video recordings (created if doesn't exist)
+recordings_directory = "./recordings"
+
+# Target frames per second for recorded video
+# Should match or be close to camera FPS
+recording_fps = 30.0
+
+# Video codec preference: "h264", "h265", "mjpeg", or "xvid"
+# Falls back to MJPEG if preferred codec unavailable
+video_codec = "h264"
+
+# ============================================================================
+# Performance Settings
+# ============================================================================
+
+# Maximum depth for bounded channels between tasks
+# Higher values buffer more frames but use more memory
+# Lower values drop stale frames faster when inference lags
+# Recommended: 2-5 for real-time applications
+max_channel_depth = 3
+
+# Interval between performance metrics log messages (seconds)
+metrics_interval_seconds = 30
+
+# ============================================================================
+# Model Settings
+# ============================================================================
+
+# Path to YOLO ONNX model file
+model_path = "./models/yolo12n.onnx"
+
+# Note: Input size is detected automatically from model graph
+# The model should output standard YOLO format: [batch, predictions, 85]
+# where 85 = [x, y, w, h, confidence, 80 class scores]
+# Only COCO class 0 (person) is detected

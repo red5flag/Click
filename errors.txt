@@ -1,0 +1,19 @@
+Error: 
+   0: [91mat `/home/red/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-leptos-0.3.6/src/lib.rs:55:76`[0m
+   1: [91m`cargo metadata` exited with an error:     Updating crates.io index
+      error: failed to select a version for `tower-http`.
+          ... required by package `person-detect v1.0.0 (/home/red/PersonDetect)`
+      versions that meet the requirements `^0.6` are: 0.6.11, 0.6.10, 0.6.9, 0.6.8, 0.6.7, 0.6.6, 0.6.4, 0.6.2, 0.6.1, 0.6.0
+
+      package `person-detect` depends on `tower-http` with feature `compression` but `tower-http` does not have that feature.
+      help: there is a feature `compression-br` with a similar name
+
+
+      failed to select a version for `tower-http` which could resolve this conflict
+      [0m
+
+Location:
+   [35m/home/red/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-leptos-0.3.6/src/ext/cargo.rs[0m:[35m68[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.
