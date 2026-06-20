@@ -1,3 +1,5 @@
+This is an automatically generated readme. This does not refelect the intended intention of this application nor it's current functionality.
+
 # Person Detection System
 
 A production-quality Rust application for real-time person-only detection using YOLO12n ONNX model with the tract_onnx inference engine.
