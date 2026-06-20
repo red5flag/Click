@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::{component, view, IntoView};
 use leptos::control_flow::For;
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct DetectionBox {
     pub id: String,
     pub x: f64,

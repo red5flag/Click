@@ -3,8 +3,9 @@ use axum::{
     routing::{get, post, delete},
 };
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, watch};
 use serde::{Deserialize, Serialize};
+use tower_http::services::ServeDir;
 
 mod handlers;
 mod websocket;
@@ -21,9 +22,26 @@ pub struct WebAppState {
     pub fps: f64,
 }
 
+#[derive(Clone, Default, Serialize)]
+pub struct FrameState {
+    pub image: String,
+    pub detections: Vec<crate::app::components::detection_overlay::DetectionBox>,
+    pub timestamp: i64,
+}
+
 #[derive(Clone)]
 pub struct WebState {
     pub app_state: Arc<RwLock<WebAppState>>,
+    pub frame_tx: watch::Sender<FrameState>,
+}
+
+impl WebState {
+    pub fn new() -> Self {
+        Self {
+            app_state: Arc::new(RwLock::new(WebAppState::default())),
+            frame_tx: watch::channel(FrameState::default()).0,
+        }
+    }
 }
 
 pub fn create_router(state: WebState) -> Router {
@@ -35,14 +53,14 @@ pub fn create_router(state: WebState) -> Router {
         .route("/api/models/load", post(load_model_handler))
         .route("/api/detection/settings", get(get_detection_settings).post(set_detection_settings))
         .route("/api/tags", get(list_tags).post(create_tag))
-        .route("/api/tags/:id", delete(delete_tag_handler))
+        .route("/api/tags/{id}", delete(delete_tag_handler))
         .route("/api/recording/toggle", post(toggle_recording))
         .route("/api/recordings", get(list_recordings))
         .route("/api/stats", get(get_stats))
         .route("/api/settings", get(get_settings).post(save_settings))
         .route("/api/system/info", get(system_info))
         .route("/", get(index_handler))
-        .route("/*path", get(static_handler))
+        .fallback_service(ServeDir::new("target/site"))
         .with_state(state)
 }
 

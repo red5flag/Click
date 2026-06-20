@@ -5,7 +5,7 @@ use crate::app::components::*;
 
 #[component]
 pub fn CameraPage() -> impl IntoView {
-    let (active_tab, set_active_tab) = create_signal("settings");
+    let (active_tab, set_active_tab) = signal("settings");
     
     view! {
         <div class="camera-page">
@@ -51,12 +51,11 @@ pub fn CameraPage() -> impl IntoView {
 #[component]
 fn TabButton(label: &'static str, tab: &'static str, active: ReadSignal<&'static str>, set: WriteSignal<&'static str>) -> impl IntoView {
     let is_active = move || active.get() == tab;
-    let tab = tab.to_string();
     
     view! {
         <button
             class={move || if is_active() { "tab-btn active" } else { "tab-btn" }}
-            on:click=move |_| set.set(tab.clone())
+            on:click=move |_| set.set(tab)
         >
             {label}
         </button>

@@ -43,7 +43,7 @@ impl CameraCapture {
 
         // Open camera in blocking task
         let camera_index = self.config.camera_index;
-        let mut cap = tokio::task::spawn_blocking(move || {
+        let cap = tokio::task::spawn_blocking(move || {
             VideoCapture::new(camera_index, CAP_ANY)
         })
         .await
@@ -92,8 +92,11 @@ impl CameraCapture {
 
             match read_result {
                 Ok(Ok(true)) => {
-                    let fb = frame_buffer.lock().unwrap();
-                    if fb.empty() {
+                    let empty = {
+                        let fb = frame_buffer.lock().unwrap();
+                        fb.empty()
+                    };
+                    if empty {
                         warn!("Empty frame received, retrying");
                         tokio::task::yield_now().await;
                         continue;
@@ -102,27 +105,21 @@ impl CameraCapture {
                     sequence += 1;
                     self.metrics.record_frame_captured();
 
-                    // Clone frame for sending
-                    let frame = Frame::new(
-                        fb.clone(),
-                        sequence,
-                    );
+                    let frame = {
+                        let fb = frame_buffer.lock().unwrap();
+                        Frame::new(fb.clone(), sequence)
+                    };
 
-                    // Try to send with timeout - drop frame if channel full
-                    match frame_tx.try_send(frame) {
-                        Ok(()) => {
+                    // Send with backpressure - this naturally throttles camera
+                    // to match inference speed, avoiding frame drops
+                    let send_fut = frame_tx.send(frame);
+                    tokio::pin!(send_fut);
+                    tokio::select! {
+                        _ = &mut send_fut => {
                             debug!("Frame {} sent to inference pipeline", sequence);
                         }
-                        Err(mpsc::error::TrySendError::Full(_)) => {
-                            // Channel full - drop stale frame
-                            warn!(
-                                "Inference pipeline lagging, dropping frame {} (queue full)",
-                                sequence
-                            );
-                        }
-                        Err(mpsc::error::TrySendError::Closed(_)) => {
-                            error!("Frame channel closed, stopping capture");
-                            break;
+                        _ = tokio::time::sleep(tokio::time::Duration::from_secs(5)) => {
+                            warn!("Frame {} send timed out (5s), inference too slow", sequence);
                         }
                     }
                 }
@@ -147,13 +144,4 @@ impl CameraCapture {
         
         Ok(())
     }
-}
-
-/// Camera information for diagnostics
-#[derive(Debug, Clone)]
-pub struct CameraInfo {
-    pub index: i32,
-    pub width: i32,
-    pub height: i32,
-    pub fps: f64,
 }

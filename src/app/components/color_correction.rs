@@ -5,15 +5,15 @@ use leptos::control_flow::Show;
 
 #[component]
 pub fn ColorCorrection() -> impl IntoView {
-    let (enabled, set_enabled) = create_signal(false);
-    let (preset, set_preset) = create_signal("natural".to_string());
-    let (temperature, set_temperature) = create_signal(6500_i32);
-    let (tint, set_tint) = create_signal(0_i32);
-    let (hue_shift, set_hue_shift) = create_signal(0_i32);
-    let (vibrance, set_vibrance) = create_signal(0_i32);
-    let (shadow_boost, set_shadow_boost) = create_signal(0_i32);
-    let (vignette, set_vignette) = create_signal(0_i32);
-    let (dehaze, set_dehaze) = create_signal(0_i32);
+    let (enabled, set_enabled) = signal(false);
+    let (preset, set_preset) = signal("natural".to_string());
+    let (temperature, set_temperature) = signal(6500_i32);
+    let (tint, set_tint) = signal(0_i32);
+    let (hue_shift, set_hue_shift) = signal(0_i32);
+    let (vibrance, set_vibrance) = signal(0_i32);
+    let (shadow_boost, set_shadow_boost) = signal(0_i32);
+    let (vignette, set_vignette) = signal(0_i32);
+    let (dehaze, set_dehaze) = signal(0_i32);
     
     let presets = vec![
         ("natural", "Natural", "🌿"),
@@ -28,7 +28,7 @@ pub fn ColorCorrection() -> impl IntoView {
     ];
     
     let save_settings = move |_| {
-        let settings = serde_json::json!({
+        let _settings = serde_json::json!({
             "enabled": enabled.get(),
             "preset": preset.get(),
             "temperature": temperature.get(),
@@ -44,7 +44,7 @@ pub fn ColorCorrection() -> impl IntoView {
         wasm_bindgen_futures::spawn_local(async move {
             let _ = reqwasm::http::Request::post("/api/camera/settings")
                 .header("Content-Type", "application/json")
-                .body(settings.to_string())
+                .body(_settings.to_string())
                 .send()
                 .await;
         });
@@ -72,7 +72,8 @@ pub fn ColorCorrection() -> impl IntoView {
                 <div class="cc-section">
                     <h4>"Presets"</h4>
                     <div class="preset-grid">
-                        {presets.into_iter().map(|(id, name, icon)| {
+                        {presets.iter().map(|(id, name, icon)| {
+                            let (id, name, icon) = (*id, *name, *icon);
                             let id_clone = id.to_string();
                             let is_active = move || preset.get() == id;
                             view! {

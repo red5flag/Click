@@ -1,19 +1,37 @@
-Error: 
-   0: [91mat `/home/red/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-leptos-0.3.6/src/lib.rs:55:76`[0m
-   1: [91m`cargo metadata` exited with an error:     Updating crates.io index
-      error: failed to select a version for `tower-http`.
-          ... required by package `person-detect v1.0.0 (/home/red/PersonDetect)`
-      versions that meet the requirements `^0.6` are: 0.6.11, 0.6.10, 0.6.9, 0.6.8, 0.6.7, 0.6.6, 0.6.4, 0.6.2, 0.6.1, 0.6.0
-
-      package `person-detect` depends on `tower-http` with feature `compression` but `tower-http` does not have that feature.
-      help: there is a feature `compression-br` with a similar name
-
-
-      failed to select a version for `tower-http` which could resolve this conflict
-      [0m
-
-Location:
-   [35m/home/red/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-leptos-0.3.6/src/ext/cargo.rs[0m:[35m68[0m
-
-Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
-Run with RUST_BACKTRACE=full to include source snippets.
+[38;5;214m    Metadata[0m keys ["env"] from metadata.leptos are not recognized and will be ignored
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.23s
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.24s
+[38;5;77m       Cargo[0m finished [38;5;241mcargo build --package=person-detect --lib --target-dir=/home/red/PersonDetect/target/front --target=wasm32-unknown-unknown --no-default-features --features=csr[0m
+[38;5;77m       Front[0m generating JS/WASM with wasm-bindgen
+[38;5;77m       Cargo[0m finished [38;5;241mcargo build --package=person-detect --bin=person-detect --no-default-features --features=ssr[0m
+[38;5;77m    Finished[0m generating JS/WASM for front in 222.04898ms
+[38;5;77m     Serving[0m at http://127.0.0.1:3000
+[38;5;77m    Creating[0m ignore list from '.gitignore' file
+[2m2026-06-20T15:40:51.893842Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m23:[0m Person Detection System Starting
+[2m2026-06-20T15:40:51.893857Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m24:[0m Version: 1.0.0
+[2m2026-06-20T15:40:51.893895Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m32:[0m Configuration loaded successfully
+[2m2026-06-20T15:40:51.893899Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m33:[0m Camera index: 0
+[2m2026-06-20T15:40:51.893902Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m34:[0m Confidence threshold: 0.5
+[2m2026-06-20T15:40:51.893906Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m35:[0m IoU threshold: 0.45
+[2m2026-06-20T15:40:51.893908Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m36:[0m Grace period: 10 seconds
+[2m2026-06-20T15:40:51.893910Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m37:[0m Recordings directory: ./recordings
+[2m2026-06-20T15:40:51.893919Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m52:[0m Application initialized
+[2m2026-06-20T15:40:51.893935Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m71:[0m Starting application main loop
+[2m2026-06-20T15:40:51.893941Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m28:[0m Loading YOLO model from: ./models/model.onnx
+[2m2026-06-20T15:40:51.894156Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect[0m[2m:[0m [2m94:[0m Web server listening on http://127.0.0.1:3000
+[2m2026-06-20T15:40:52.037707Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m79:[0m Model input shape: [1, 3, 640, 640]
+[2m2026-06-20T15:40:52.037726Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m80:[0m Model loaded successfully
+[2m2026-06-20T15:40:52.037977Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m81:[0m Model initialized: ModelInfo { input_shape: [1, 3, 640, 640], confidence_threshold: 0.5, iou_threshold: 0.45, target_class: 0 }
+[2m2026-06-20T15:40:52.038018Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::camera[0m[2m:[0m [2m42:[0m Initializing camera 0
+[2m2026-06-20T15:40:52.038038Z[0m [32m INFO[0m ThreadId(08) [2mperson_detect::app::application[0m[2m:[0m [2m308:[0m Detection task started
+[2m2026-06-20T15:40:52.038045Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::app::application[0m[2m:[0m [2m202:[0m Inference task started
+[2m2026-06-20T15:40:52.038050Z[0m [32m INFO[0m ThreadId(09) [2mperson_detect::recording[0m[2m:[0m [2m209:[0m Video recorder task started
+[ WARN:0@0.602] global cap_gstreamer.cpp:1777 open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+[2m2026-06-20T15:40:52.491656Z[0m [32m INFO[0m ThreadId(03) [2mperson_detect::camera[0m[2m:[0m [2m58:[0m Camera opened: 640x480 @ 30.0 FPS
+[2m2026-06-20T15:40:52.491683Z[0m [32m INFO[0m ThreadId(03) [2mperson_detect::camera[0m[2m:[0m [2m74:[0m Camera capture started

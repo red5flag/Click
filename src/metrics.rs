@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{debug, info};
+use tracing::info;
 
 /// Thread-safe performance metrics collector
 #[derive(Debug, Clone)]

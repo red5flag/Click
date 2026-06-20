@@ -4,24 +4,24 @@ use crate::app::components::*;
 
 #[component]
 pub fn Dashboard() -> impl IntoView {
-    let (persons_detected, set_persons_detected) = create_signal(0);
-    let (fps, set_fps) = create_signal(30.0);
-    let (recording, set_recording) = create_signal(false);
+    let (persons_detected, _set_persons_detected) = signal(0);
+    let (fps, _set_fps) = signal(30.0);
+    let (recording, _set_recording) = signal(false);
     
-    create_effect(move |_| {
+    Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
             loop {
                 if let Ok(resp) = reqwasm::http::Request::get("/api/stats").send().await {
                     if let Ok(stats) = resp.json::<serde_json::Value>().await {
                         if let Some(v) = stats.get("persons_detected").and_then(|v| v.as_u64()) {
-                            set_persons_detected.set(v as usize);
+                            _set_persons_detected.set(v as usize);
                         }
                         if let Some(v) = stats.get("fps").and_then(|v| v.as_f64()) {
-                            set_fps.set(v);
+                            _set_fps.set(v);
                         }
                         if let Some(v) = stats.get("recording").and_then(|v| v.as_bool()) {
-                            set_recording.set(v);
+                            _set_recording.set(v);
                         }
                     }
                 }

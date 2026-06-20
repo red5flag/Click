@@ -4,7 +4,7 @@ use leptos::control_flow::Show;
 
 #[component]
 pub fn SettingsPage() -> impl IntoView {
-    let (active_section, set_active_section) = create_signal("general");
+    let (active_section, set_active_section) = signal("general");
     
     view! {
         <div class="settings-page">
@@ -44,12 +44,11 @@ pub fn SettingsPage() -> impl IntoView {
 #[component]
 fn NavItem(label: &'static str, section: &'static str, active: ReadSignal<&'static str>, set: WriteSignal<&'static str>) -> impl IntoView {
     let is_active = move || active.get() == section;
-    let section = section.to_string();
     
     view! {
         <button
             class={move || if is_active() { "nav-item active" } else { "nav-item" }}
-            on:click=move |_| set.set(section.clone())
+            on:click=move |_| set.set(section)
         >
             {label}
         </button>

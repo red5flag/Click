@@ -4,18 +4,18 @@ use wasm_bindgen::JsCast;
 
 #[component]
 pub fn CameraControls() -> impl IntoView {
-    let (camera_index, set_camera_index) = create_signal(0_i32);
-    let (resolution, set_resolution) = create_signal("640x480".to_string());
-    let (fps, set_fps) = create_signal(30_i32);
-    let (brightness, set_brightness) = create_signal(50_i32);
-    let (contrast, set_contrast) = create_signal(50_i32);
-    let (saturation, set_saturation) = create_signal(50_i32);
-    let (auto_exposure, set_auto_exposure) = create_signal(true);
-    let (auto_white_balance, set_auto_white_balance) = create_signal(true);
-    let (auto_gain, set_auto_gain) = create_signal(true);
+    let (camera_index, set_camera_index) = signal(0_i32);
+    let (resolution, set_resolution) = signal("640x480".to_string());
+    let (fps, set_fps) = signal(30_i32);
+    let (brightness, set_brightness) = signal(50_i32);
+    let (contrast, set_contrast) = signal(50_i32);
+    let (saturation, set_saturation) = signal(50_i32);
+    let (auto_exposure, set_auto_exposure) = signal(true);
+    let (auto_white_balance, set_auto_white_balance) = signal(true);
+    let (auto_gain, set_auto_gain) = signal(true);
     
     let save_settings = move |_| {
-        let settings = serde_json::json!({
+        let _settings = serde_json::json!({
             "camera_index": camera_index.get(),
             "resolution": resolution.get(),
             "fps": fps.get(),
@@ -31,7 +31,7 @@ pub fn CameraControls() -> impl IntoView {
         wasm_bindgen_futures::spawn_local(async move {
             let _ = reqwasm::http::Request::post("/api/camera/settings")
                 .header("Content-Type", "application/json")
-                .body(settings.to_string())
+                .body(_settings.to_string())
                 .send()
                 .await;
         });
@@ -46,7 +46,7 @@ pub fn CameraControls() -> impl IntoView {
                 <div class="control-row">
                     <label>"Camera Index"</label>
                     <select
-                        value=move || camera_index.get().to_string()
+                        prop:value=move || camera_index.get().to_string()
                         on:change=move |e| set_camera_index.set(event_target_value(&e).parse().unwrap_or(0))
                     >
                         <option value="0">"Camera 0"</option>
@@ -58,7 +58,7 @@ pub fn CameraControls() -> impl IntoView {
                 <div class="control-row">
                     <label>"Resolution"</label>
                     <select
-                        value=move || resolution.get()
+                        prop:value=move || resolution.get()
                         on:change=move |e| set_resolution.set(event_target_value(&e))
                     >
                         <option value="320x240">"320x240"</option>
@@ -136,19 +136,22 @@ fn Toggle(label: &'static str, value: ReadSignal<bool>, set_value: WriteSignal<b
 }
 
 fn event_target_value(event: &web_sys::Event) -> String {
-    event
-        .target()
-        .unwrap()
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .unwrap()
-        .value()
+    if let Some(target) = event.target() {
+        if let Some(input) = target.dyn_ref::<web_sys::HtmlInputElement>() {
+            return input.value();
+        }
+        if let Some(select) = target.dyn_ref::<web_sys::HtmlSelectElement>() {
+            return select.value();
+        }
+    }
+    String::new()
 }
 
 fn event_target_checked(event: &web_sys::Event) -> bool {
-    event
-        .target()
-        .unwrap()
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .unwrap()
-        .checked()
+    if let Some(target) = event.target() {
+        if let Some(input) = target.dyn_ref::<web_sys::HtmlInputElement>() {
+            return input.checked();
+        }
+    }
+    false
 }

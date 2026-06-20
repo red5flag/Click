@@ -4,15 +4,13 @@ use opencv::prelude::*;
 use rayon::prelude::*;
 use std::path::Path;
 use std::time::Instant;
-use tract_core::ops::konst::Const;
-use tract_core::ops::nn::DataFormat;
 use tract_core::prelude::*;
 use tract_onnx::prelude::*;
+use tract_core::framework::Framework;
 
 /// YOLO ONNX model handler
 pub struct YoloModel {
     model: SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>,
-    input_fact: TypedFact,
     input_shape: Vec<usize>,
     confidence_threshold: f32,
     iou_threshold: f32,
@@ -29,29 +27,41 @@ impl YoloModel {
         let model_path = model_path.as_ref();
         tracing::info!("Loading YOLO model from: {}", model_path.display());
 
-        // Load ONNX model
-        let onnx = tract_onnx::onnx()
-            .model_for_path(model_path)
+        // Load ONNX model, stripping value_info to avoid unsupported floor() in TDim expressions
+        let onnx_parser = tract_onnx::onnx().with_ignore_output_shapes(true);
+        let mut proto = onnx_parser
+            .proto_model_for_path(model_path)
             .with_context(|| format!("Failed to load ONNX model from {}", model_path.display()))?;
 
-        // Optimize and build runnable model
-        let typed_model = onnx
+        // tract 0.21 can't parse floor() in dimension expressions; strip value_info
+        if let Some(graph) = &mut proto.graph {
+            graph.value_info.clear();
+        }
+
+        let dir = model_path.parent().and_then(|p| p.to_str());
+        let parse_result = onnx_parser
+            .parse(&proto, dir)
+            .with_context(|| format!("Failed to parse ONNX model from {}", model_path.display()))?;
+        if !parse_result.unresolved_inputs.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Could not resolve inputs at top-level: {:?}",
+                parse_result.unresolved_inputs
+            ));
+        }
+
+        // Provide concrete input shape to avoid symbolic dimension parsing failures
+        let typed_model = parse_result
+            .model
+            .with_input_fact(0, InferenceFact::dt_shape(f32::datum_type(), tvec!(1, 3, 640, 640)))
+            .with_context(|| "Failed to set input fact")?
             .into_optimized()
             .with_context(|| "Failed to optimize model")?;
 
-        // Get input fact from typed model
+        // Get input shape from typed model before consuming it
         let input_fact = typed_model
             .input_fact(0)
-            .map_err(|e| anyhow::anyhow!("Failed to get input fact: {}", e))?
-            .clone();
+            .map_err(|e| anyhow::anyhow!("Failed to get input fact: {}", e))?;
 
-        tracing::info!("Model input fact: {:?}", input_fact);
-
-        let model = typed_model
-            .into_runnable()
-            .with_context(|| "Failed to create runnable model")?;
-
-        // Get input shape
         let input_shape: Vec<usize> = input_fact
             .shape
             .iter()
@@ -62,12 +72,15 @@ impl YoloModel {
             })
             .collect();
 
+        let model = typed_model
+            .into_runnable()
+            .with_context(|| "Failed to create runnable model")?;
+
         tracing::info!("Model input shape: {:?}", input_shape);
         tracing::info!("Model loaded successfully");
 
         Ok(Self {
             model,
-            input_fact,
             input_shape,
             confidence_threshold,
             iou_threshold,
@@ -100,42 +113,27 @@ impl YoloModel {
             opencv::imgproc::INTER_LINEAR,
         )?;
 
-        // Convert BGR to RGB
-        let mut rgb = opencv::core::Mat::default();
-        opencv::imgproc::cvt_color(
-            &resized,
-            &mut rgb,
-            opencv::imgproc::COLOR_BGR2RGB,
-            0,
-            opencv::core::AlgorithmHint::ALGO_HINT_DEFAULT,
-        )?;
-
-        // Normalize to [0, 1] and convert to tensor format
+        // Normalize BGR to [0, 1] and convert to tensor format (HWC RGB)
         let mut tensor_data = vec![0.0f32; target_h * target_w * 3];
-        
-        // Use rayon for parallel pixel processing
-        let rows: Vec<(usize, opencv::core::Mat)> = (0..rgb.rows())
-            .filter_map(|i| {
-                rgb.row(i).ok().map(|row| (i as usize, row.try_clone().unwrap_or_default()))
-            })
-            .collect();
+        let bgr_data = resized.data_bytes().unwrap_or(&[]);
 
-        rows.into_par_iter().for_each(|(row_idx, row)| {
-            let base_idx = row_idx * target_w * 3;
-            let row_data = row.data_bytes().unwrap_or(&[]);
-            
-            for col in 0..target_w {
-                let idx = base_idx + col * 3;
-                let pixel_idx = col * 3;
-                
-                if pixel_idx + 2 < row_data.len() {
-                    // Normalize to [0, 1]
-                    tensor_data[idx] = row_data[pixel_idx] as f32 / 255.0;
-                    tensor_data[idx + 1] = row_data[pixel_idx + 1] as f32 / 255.0;
-                    tensor_data[idx + 2] = row_data[pixel_idx + 2] as f32 / 255.0;
+        // Use rayon for parallel pixel processing without locking
+        tensor_data
+            .par_chunks_mut(target_w * 3)
+            .enumerate()
+            .for_each(|(row_idx, chunk)| {
+                let row_offset = row_idx * target_w * 3;
+                for col in 0..target_w {
+                    let src_idx = row_offset + col * 3;
+                    let dst_idx = col * 3;
+                    if src_idx + 2 < bgr_data.len() {
+                        // Convert BGR to RGB and normalize
+                        chunk[dst_idx] = bgr_data[src_idx + 2] as f32 / 255.0;
+                        chunk[dst_idx + 1] = bgr_data[src_idx + 1] as f32 / 255.0;
+                        chunk[dst_idx + 2] = bgr_data[src_idx] as f32 / 255.0;
+                    }
                 }
-            }
-        });
+            });
 
         // Create tensor with shape [1, 3, H, W] (NCHW format)
         let tensor = Tensor::from_shape(
@@ -163,7 +161,7 @@ impl YoloModel {
         
         // Process outputs
         let nms_start = Instant::now();
-        let detections = self.process_outputs(&result[..])?;
+        let detections = self.process_outputs(&result)?;
         let nms_elapsed = nms_start.elapsed();
 
         tracing::debug!(
@@ -177,7 +175,7 @@ impl YoloModel {
     }
 
     /// Process model outputs and apply NMS
-    fn process_outputs(&self, outputs: &[Arc<Tensor>]) -> Result<Vec<Detection>> {
+    fn process_outputs(&self, outputs: &[TValue]) -> Result<Vec<Detection>> {
         if outputs.is_empty() {
             return Ok(Vec::new());
         }

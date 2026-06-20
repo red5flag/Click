@@ -1,13 +1,11 @@
 use crate::types::{Frame, ShutdownSignal};
 use anyhow::{Context, Result};
-use chrono::Local;
 use opencv::prelude::*;
 use opencv::core::Size;
 use opencv::videoio::VideoWriter;
 use opencv::videoio::VideoWriterTrait;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
@@ -184,7 +182,7 @@ impl VideoRecorder {
 
     /// Stop and finalize recording
     fn stop_recording(&mut self) -> Result<()> {
-        if let Some(mut writer) = self.current_writer.take() {
+        if let Some(writer) = self.current_writer.take() {
             let path = self.current_path.take();
             let count = self.frame_count;
 
@@ -244,13 +242,4 @@ impl VideoRecorder {
 
         Ok(())
     }
-}
-
-/// Current recording state information
-#[derive(Debug, Clone)]
-pub struct RecordingInfo {
-    pub active: bool,
-    pub path: Option<PathBuf>,
-    pub frame_count: u64,
-    pub duration_seconds: f64,
 }

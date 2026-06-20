@@ -1,6 +1,6 @@
-use crate::types::{Detection, InferenceResult, RecordingState};
+use crate::types::{InferenceResult, RecordingState};
 use std::time::{Duration, Instant};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Detection state machine configuration
 #[derive(Debug, Clone)]
@@ -189,6 +189,7 @@ impl DetectionStateMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::Detection;
 
     fn create_detection(confidence: f32) -> Detection {
         Detection::new(0.5, 0.5, 0.2, 0.4, confidence, 0)

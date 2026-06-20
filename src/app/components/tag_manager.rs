@@ -15,13 +15,13 @@ pub struct Tag {
 
 #[component]
 pub fn TagManager() -> impl IntoView {
-    let (tags, set_tags) = create_signal::<Vec<Tag>>(vec![]);
-    let (new_tag_name, set_new_tag_name) = create_signal(String::new());
-    let (new_tag_color, set_new_tag_color) = create_signal("#3b82f6".to_string());
-    let (search_query, set_search_query) = create_signal(String::new());
-    let (show_form, set_show_form) = create_signal(false);
+    let (tags, set_tags) = signal::<Vec<Tag>>(vec![]);
+    let (new_tag_name, set_new_tag_name) = signal(String::new());
+    let (new_tag_color, set_new_tag_color) = signal("#3b82f6".to_string());
+    let (search_query, set_search_query) = signal(String::new());
+    let (show_form, set_show_form) = signal(false);
     
-    create_effect(move |_| {
+    Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
             if let Ok(resp) = reqwasm::http::Request::get("/api/tags").send().await {
@@ -110,7 +110,8 @@ pub fn TagManager() -> impl IntoView {
                         on:input=move |e| set_new_tag_name.set(event_target_value(&e))
                     />
                     <div class="color-picker">
-                        {colors.into_iter().map(|color| {
+                        {colors.iter().map(|color| {
+                            let color = *color;
                             let color_clone = color.to_string();
                             let is_selected = move || new_tag_color.get() == color;
                             view! {

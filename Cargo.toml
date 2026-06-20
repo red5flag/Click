@@ -11,6 +11,9 @@ license = "MIT"
 members = ["."]
 resolver = "2"
 
+[profile.dev]
+opt-level = 2
+
 [profile.release]
 opt-level = 3
 lto = "thin"
@@ -24,7 +27,7 @@ name = "person-detect"
 bin-package = "person-detect"
 lib-package = "person-detect"
 bin-features = ["ssr"]
-lib-features = ["hydrate"]
+lib-features = ["csr"]
 output-name = "person-detect"
 site-root = "target/site"
 site-pkg-dir = "pkg"
@@ -51,14 +54,14 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde", "js"] }
 
 # Web Framework - Leptos 0.8 (shared)
-leptos = { version = "0.8", features = ["ssr", "hydrate"] }
+leptos = { version = "0.8" }
 leptos_router = { version = "0.8" }
 leptos_meta = { version = "0.8" }
 
 # WASM / Client-side (shared, compile on both targets)
 wasm-bindgen = "0.2"
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["console", "Window", "Document", "HtmlElement", "HtmlInputElement", "WebSocket", "MessageEvent", "BinaryType", "HtmlCanvasElement", "CanvasRenderingContext2d", "File", "FileList", "Event"] }
+web-sys = { version = "0.3", features = ["console", "Window", "Document", "HtmlElement", "HtmlInputElement", "HtmlSelectElement", "HtmlImageElement", "WebSocket", "MessageEvent", "BinaryType", "HtmlCanvasElement", "CanvasRenderingContext2d", "File", "FileList", "Event"] }
 
 # WASM-only (optional, activated by hydrate feature)
 wasm-bindgen-futures = { version = "0.4", optional = true }
@@ -75,7 +78,7 @@ rayon = "1.8"
 tract-onnx = "0.21"
 tract-core = "0.21"
 tract-nnef = "0.21"
-opencv = { version = "0.98", default-features = false, features = ["videoio", "imgproc"] }
+opencv = { version = "0.98", default-features = false, features = ["videoio", "imgproc", "imgcodecs"] }
 leptos_axum = { version = "0.8" }
 axum = { version = "0.8", features = ["ws", "multipart"] }
 tower = { version = "0.5", features = ["full"] }
@@ -111,5 +114,6 @@ path = "src/main.rs"
 
 [features]
 default = ["ssr"]
-ssr = ["leptos/ssr"]
+ssr = ["leptos/ssr", "leptos_router/ssr", "leptos_meta/ssr"]
 hydrate = ["leptos/hydrate", "dep:wasm-bindgen-futures", "dep:reqwasm", "dep:gloo-timers", "dep:console_error_panic_hook"]
+csr = ["leptos/csr", "dep:wasm-bindgen-futures", "dep:reqwasm", "dep:gloo-timers", "dep:console_error_panic_hook"]

@@ -9,7 +9,6 @@ pub mod application;
 pub mod components;
 pub mod pages;
 
-use components::*;
 use pages::*;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -51,7 +50,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn ConnectionStatus() -> impl IntoView {
-    let (connected, _set_connected) = create_signal(true);
+    let (connected, _set_connected) = signal(true);
     
     view! {
         <span class={move || if connected.get() { "status-online" } else { "status-offline" }}>

@@ -59,7 +59,7 @@ metrics_interval_seconds = 30
 # ============================================================================
 
 # Path to YOLO ONNX model file
-model_path = "./models/yolo12n.onnx"
+model_path = "./models/model.onnx"
 
 # Note: Input size is detected automatically from model graph
 # The model should output standard YOLO format: [batch, predictions, 85]

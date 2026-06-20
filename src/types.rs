@@ -169,17 +169,3 @@ impl Default for ShutdownSignal {
     }
 }
 
-/// Performance metrics for a single frame processing
-#[derive(Debug, Clone, Copy, Default)]
-pub struct FrameMetrics {
-    /// Capture to inference queue wait time in ms
-    pub queue_wait_ms: f64,
-    /// Preprocessing time in ms
-    pub preprocess_ms: f64,
-    /// Inference time in ms
-    pub inference_ms: f64,
-    /// Postprocessing (NMS) time in ms
-    pub postprocess_ms: f64,
-    /// Total processing time in ms
-    pub total_ms: f64,
-}

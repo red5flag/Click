@@ -259,7 +259,7 @@ mod integration {
     #[test]
     fn test_model_load_and_inference() {
         // This test requires the actual model file
-        let model_path = "./models/yolo12n.onnx";
+        let model_path = "./models/model.onnx";
         if !std::path::Path::new(model_path).exists() {
             println!("Skipping integration test - model not found");
             return;

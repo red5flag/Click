@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PersonDetect</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/pkg/person-detect.css">
     <style>
         body { margin: 0; background: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
@@ -17,5 +17,21 @@
         <div class="loading-spinner"></div>
         <span>Loading PersonDetect...</span>
     </div>
+    <script type="module">
+        import init, { hydrate } from '/pkg/person-detect.js';
+        async function main() {
+            try {
+                await init({ module_or_path: '/pkg/person-detect.wasm' });
+                hydrate();
+            } catch (e) {
+                console.error('WASM init/hydrate failed:', e);
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.innerHTML = '<div style="color:#ef4444;max-width:80%;text-align:left;white-space:pre-wrap;"><strong>WASM init/hydrate failed</strong><br>' + (e && e.stack ? e.stack : String(e)) + '</div>';
+                }
+            }
+        }
+        main();
+    </script>
 </body>
 </html>

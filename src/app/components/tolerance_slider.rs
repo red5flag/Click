@@ -4,12 +4,12 @@ use wasm_bindgen::JsCast;
 
 #[component]
 pub fn ToleranceControls() -> impl IntoView {
-    let (confidence_threshold, set_confidence_threshold) = create_signal(0.5_f64);
-    let (iou_threshold, set_iou_threshold) = create_signal(0.45_f64);
-    let (grace_period, set_grace_period) = create_signal(10_i32);
+    let (confidence_threshold, set_confidence_threshold) = signal(0.5_f64);
+    let (iou_threshold, set_iou_threshold) = signal(0.45_f64);
+    let (grace_period, set_grace_period) = signal(10_i32);
     
     let save_settings = move |_| {
-        let settings = serde_json::json!({
+        let _settings = serde_json::json!({
             "confidence_threshold": confidence_threshold.get(),
             "iou_threshold": iou_threshold.get(),
             "grace_period_seconds": grace_period.get(),
@@ -19,7 +19,7 @@ pub fn ToleranceControls() -> impl IntoView {
         wasm_bindgen_futures::spawn_local(async move {
             let _ = reqwasm::http::Request::post("/api/detection/settings")
                 .header("Content-Type", "application/json")
-                .body(settings.to_string())
+                .body(_settings.to_string())
                 .send()
                 .await;
         });

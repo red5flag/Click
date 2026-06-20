@@ -1,12 +1,10 @@
 use anyhow::Result;
 use std::future::IntoFuture;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::{error, info};
 
 use person_detect::app::Application;
 use person_detect::config::Config;
-use person_detect::web::{create_router, WebAppState, WebState};
+use person_detect::web::{create_router, WebState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -39,12 +37,10 @@ async fn main() -> Result<()> {
     info!("Recordings directory: {}", config.recordings_directory);
 
     // Shared web state
-    let web_state = WebState {
-        app_state: Arc::new(RwLock::new(WebAppState::default())),
-    };
+    let web_state = WebState::new();
 
     // Create and run application
-    let app = Application::new(config).await?;
+    let app = Application::new(config, web_state.clone()).await?;
     let shutdown_handle = app.get_shutdown_handle();
 
     // Start web server

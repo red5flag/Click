@@ -4,17 +4,17 @@ use leptos::control_flow::Show;
 
 #[component]
 pub fn RecordingIndicator() -> impl IntoView {
-    let (recording, set_recording) = create_signal(false);
-    let (elapsed, set_elapsed) = create_signal(0_u64);
+    let (recording, _set_recording) = signal(false);
+    let (elapsed, set_elapsed) = signal(0_u64);
     
-    create_effect(move |_| {
+    Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
             loop {
                 if let Ok(resp) = reqwasm::http::Request::get("/api/stats").send().await {
                     if let Ok(stats) = resp.json::<serde_json::Value>().await {
                         if let Some(rec) = stats.get("recording").and_then(|v| v.as_bool()) {
-                            set_recording.set(rec);
+                            _set_recording.set(rec);
                         }
                     }
                 }
@@ -23,7 +23,7 @@ pub fn RecordingIndicator() -> impl IntoView {
         });
     });
     
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if recording.get() {
             #[cfg(target_arch = "wasm32")]
             wasm_bindgen_futures::spawn_local(async move {

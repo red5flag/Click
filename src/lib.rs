@@ -20,10 +20,10 @@ pub mod web;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
 
-#[cfg(feature = "hydrate")]
+#[cfg(feature = "csr")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-#[cfg(feature = "hydrate")]
+#[cfg(feature = "csr")]
 #[wasm_bindgen]
 pub fn hydrate() {
     use app::App;

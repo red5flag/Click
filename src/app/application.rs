@@ -1,3 +1,4 @@
+use crate::app::components::detection_overlay::DetectionBox;
 use crate::camera::{CameraCapture, CameraConfig};
 use crate::config::Config;
 use crate::detection::{DetectionConfig, DetectionStateMachine, StateTransition};
@@ -5,7 +6,10 @@ use crate::metrics::MetricsCollector;
 use crate::model::YoloModel;
 use crate::recording::{RecorderConfig, RecordingCommand, VideoRecorder};
 use crate::types::{Frame, InferenceResult, ShutdownSignal};
+use crate::web::{FrameState, WebState};
 use anyhow::{Context, Result};
+use base64::Engine;
+use opencv::imgcodecs;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::mpsc;
@@ -17,6 +21,7 @@ pub struct Application {
     config: Config,
     metrics: Arc<MetricsCollector>,
     tx: tokio::sync::watch::Sender<bool>,
+    web_state: crate::web::WebState,
 }
 
 /// Shutdown handle for external control
@@ -40,7 +45,7 @@ impl ShutdownHandle {
 
 impl Application {
     /// Create and initialize the application
-    pub async fn new(config: Config) -> Result<Self> {
+    pub async fn new(config: Config, web_state: crate::web::WebState) -> Result<Self> {
         let metrics = Arc::new(MetricsCollector::new());
         let (tx, _rx) = tokio::sync::watch::channel(false);
 
@@ -50,6 +55,7 @@ impl Application {
             config,
             metrics,
             tx,
+            web_state,
         })
     }
 
@@ -100,6 +106,7 @@ impl Application {
         let model_clone = Arc::clone(&model);
         let metrics_clone = self.metrics.clone();
         let inference_shutdown = shutdown_signal.clone();
+        let web_state_clone = self.web_state.clone();
         let inference_handle = tokio::spawn(async move {
             Self::inference_task(
                 model_clone,
@@ -107,6 +114,7 @@ impl Application {
                 inference_tx,
                 metrics_clone,
                 inference_shutdown,
+                web_state_clone,
             ).await
         });
 
@@ -155,7 +163,7 @@ impl Application {
         });
 
         // Wait for shutdown signal from main.rs
-        let mut shutdown_rx = self.tx.subscribe();
+        let shutdown_rx = self.tx.subscribe();
         loop {
             if *shutdown_rx.borrow() {
                 info!("Shutdown signal received, waiting for tasks...");
@@ -189,16 +197,21 @@ impl Application {
         inference_tx: mpsc::Sender<InferenceResult>,
         metrics: Arc<MetricsCollector>,
         shutdown: ShutdownSignal,
+        web_state: WebState,
     ) {
         info!("Inference task started");
 
-        while let Some(frame) = frame_rx.recv().await {
+        while let Some(mut frame) = frame_rx.recv().await {
             if shutdown.is_shutdown() {
                 break;
             }
 
+            // Drop stale frames to keep latency low
+            while let Ok(latest) = frame_rx.try_recv() {
+                frame = latest;
+            }
+
             let sequence = frame.sequence;
-            let preprocess_start = Instant::now();
 
             // Preprocess frame
             let tensor = match model.preprocess(frame.data.as_ref()) {
@@ -209,23 +222,24 @@ impl Application {
                 }
             };
 
-            let preprocess_elapsed = preprocess_start.elapsed();
-
             // Run inference in blocking task
             let model_clone = Arc::clone(&model);
+            let inference_start = Instant::now();
             let inference_result = tokio::task::spawn_blocking(move || {
                 model_clone.infer(tensor)
             }).await;
+            let inference_us = inference_start.elapsed().as_micros() as u64;
 
             match inference_result {
                 Ok(Ok(detections)) => {
-                    let total_elapsed = preprocess_start.elapsed();
-                    
+                    let inference_ms = inference_us as f64 / 1000.0;
+
                     metrics.record_frame_processed();
+                    metrics.record_inference(inference_us, 0);
 
                     let result = InferenceResult {
-                        detections,
-                        inference_latency_ms: (total_elapsed.as_secs_f64() - preprocess_elapsed.as_secs_f64()) * 1000.0,
+                        detections: detections.clone(),
+                        inference_latency_ms: inference_ms,
                         nms_latency_ms: 0.0, // Included in infer
                         sequence,
                     };
@@ -234,6 +248,33 @@ impl Application {
                         warn!("Inference channel closed");
                         break;
                     }
+
+                    // Publish frame + detections for the web stream
+                    let frame_data = Arc::clone(&frame.data);
+                    let web_detections = detections
+                        .iter()
+                        .map(|d| DetectionBox {
+                            id: format!("{}-{:.3}", sequence, d.confidence),
+                            x: (d.center.x - d.dimensions.x / 2.0).max(0.0) as f64,
+                            y: (d.center.y - d.dimensions.y / 2.0).max(0.0) as f64,
+                            width: d.dimensions.x as f64,
+                            height: d.dimensions.y as f64,
+                            confidence: d.confidence as f64,
+                            class_name: "person".to_string(),
+                        })
+                        .collect::<Vec<_>>();
+                    let web_state_clone = web_state.clone();
+                    tokio::spawn(async move {
+                        let image = tokio::task::spawn_blocking(move || {
+                            Self::encode_frame_jpeg(&frame_data)
+                        }).await.ok().flatten().unwrap_or_default();
+
+                        let _ = web_state_clone.frame_tx.send(FrameState {
+                            image,
+                            detections: web_detections,
+                            timestamp: chrono::Utc::now().timestamp_millis(),
+                        });
+                    });
                 }
                 Ok(Err(e)) => {
                     warn!("Inference failed for frame {}: {}", sequence, e);
@@ -245,6 +286,16 @@ impl Application {
         }
 
         info!("Inference task stopped");
+    }
+
+    fn encode_frame_jpeg(frame: &opencv::core::Mat) -> Option<String> {
+        let mut buf = opencv::core::Vector::<u8>::new();
+        let params = opencv::core::Vector::<i32>::new();
+        if imgcodecs::imencode(".jpg", frame, &mut buf, &params).ok()? {
+            Some(base64::engine::general_purpose::STANDARD.encode(buf.as_slice()))
+        } else {
+            None
+        }
     }
 
     /// Detection state machine task

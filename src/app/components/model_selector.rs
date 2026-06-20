@@ -15,16 +15,16 @@ pub struct ModelInfo {
 
 #[component]
 pub fn ModelSelector() -> impl IntoView {
-    let (models, set_models) = create_signal::<Vec<ModelInfo>>(vec![]);
-    let (selected_model, set_selected_model) = create_signal::<Option<String>>(None);
-    let (model_loading, set_model_loading) = create_signal(false);
+    let (models, _set_models) = signal::<Vec<ModelInfo>>(vec![]);
+    let (selected_model, set_selected_model) = signal::<Option<String>>(None);
+    let (model_loading, set_model_loading) = signal(false);
     
-    create_effect(move |_| {
+    Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
             if let Ok(resp) = reqwasm::http::Request::get("/api/models").send().await {
                 if let Ok(fetched) = resp.json::<Vec<ModelInfo>>().await {
-                    set_models.set(fetched);
+                    _set_models.set(fetched);
                 }
             }
         });
@@ -55,16 +55,17 @@ pub fn ModelSelector() -> impl IntoView {
                     key=|m| m.path.clone()
                     children=move |model| {
                         let path = model.path.clone();
-                        let is_selected = move || selected_model.get().as_ref() == Some(&path);
+                        let path_for_click = path.clone();
+                        let path_for_show = path.clone();
                         
                         view! {
                             <div
-                                class={move || if is_selected() { "model-card selected" } else { "model-card" }}
-                                on:click=move |_| select_model(path.clone())
+                                class={move || if selected_model.get().as_ref() == Some(&path) { "model-card selected" } else { "model-card" }}
+                                on:click=move |_| select_model(path_for_click.clone())
                             >
                                 <div class="model-header">
                                     <h4>{model.name.clone()}</h4>
-                                    <Show when=move || is_selected()>
+                                    <Show when=move || selected_model.get().as_ref() == Some(&path_for_show)>
                                         <span class="model-badge">"Active"</span>
                                     </Show>
                                 </div>

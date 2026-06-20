@@ -5,17 +5,17 @@ use leptos::control_flow::Show;
 
 #[component]
 pub fn NightVisionControls() -> impl IntoView {
-    let (enabled, set_enabled) = create_signal(false);
-    let (mode, set_mode) = create_signal("auto".to_string());
-    let (ir_illuminator, set_ir_illuminator) = create_signal(false);
-    let (ir_intensity, set_ir_intensity) = create_signal(50_i32);
-    let (noise_reduction, set_noise_reduction) = create_signal(true);
-    let (noise_level, set_noise_level) = create_signal(50_i32);
-    let (gamma_correction, set_gamma_correction) = create_signal(1.8_f64);
-    let (digital_zoom, set_digital_zoom) = create_signal(1.0_f64);
+    let (enabled, set_enabled) = signal(false);
+    let (mode, set_mode) = signal("auto".to_string());
+    let (ir_illuminator, set_ir_illuminator) = signal(false);
+    let (ir_intensity, set_ir_intensity) = signal(50_i32);
+    let (noise_reduction, set_noise_reduction) = signal(true);
+    let (noise_level, set_noise_level) = signal(50_i32);
+    let (gamma_correction, set_gamma_correction) = signal(1.8_f64);
+    let (digital_zoom, set_digital_zoom) = signal(1.0_f64);
     
     let save_settings = move |_| {
-        let settings = serde_json::json!({
+        let _settings = serde_json::json!({
             "enabled": enabled.get(),
             "mode": mode.get(),
             "ir_illuminator": ir_illuminator.get(),
@@ -30,7 +30,7 @@ pub fn NightVisionControls() -> impl IntoView {
         wasm_bindgen_futures::spawn_local(async move {
             let _ = reqwasm::http::Request::post("/api/camera/settings")
                 .header("Content-Type", "application/json")
-                .body(settings.to_string())
+                .body(_settings.to_string())
                 .send()
                 .await;
         });
@@ -97,13 +97,13 @@ pub fn NightVisionControls() -> impl IntoView {
 
 #[component]
 fn ModeButton(label: &'static str, mode: &'static str, icon: &'static str, current: ReadSignal<String>, set: WriteSignal<String>) -> impl IntoView {
-    let is_active = move || current() == mode;
+    let is_active = move || current.get() == mode;
     let mode = mode.to_string();
     
     view! {
         <button
             class={move || if is_active() { "mode-btn active" } else { "mode-btn" }}
-            on:click=move |_| set(mode.clone())
+            on:click=move |_| set.set(mode.clone())
         >
             <span class="mode-icon">{icon}</span>
             <span>{label}</span>

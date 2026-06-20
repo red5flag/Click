@@ -1,5 +1,6 @@
 use axum::{
     extract::{State, Path},
+    response::Html,
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -7,12 +8,8 @@ use std::collections::HashMap;
 
 use super::{WebState, ApiResponse};
 
-pub async fn index_handler() -> &'static str {
-    include_str!("../../index.html")
-}
-
-pub async fn static_handler(Path(_path): Path<String>) -> &'static str {
-    "File not found"
+pub async fn index_handler() -> Html<&'static str> {
+    Html(include_str!("../../index.html"))
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -51,8 +48,8 @@ pub struct ModelInfo {
 
 pub async fn list_models(State(_state): State<WebState>) -> Json<ApiResponse<Vec<ModelInfo>>> {
     Json(ApiResponse::success(vec![ModelInfo {
-        path: "./models/yolo12n.onnx".to_string(),
-        name: "YOLO12n".to_string(),
+        path: "./models/model.onnx".to_string(),
+        name: "YOLO".to_string(),
         size_mb: 6.2,
         input_shape: "640x640".to_string(),
         num_classes: 80,
