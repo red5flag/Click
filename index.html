@@ -23,6 +23,8 @@
             try {
                 await init({ module_or_path: '/pkg/person-detect.wasm' });
                 hydrate();
+                const loading = document.getElementById('loading');
+                if (loading) loading.remove();
             } catch (e) {
                 console.error('WASM init/hydrate failed:', e);
                 const loading = document.getElementById('loading');

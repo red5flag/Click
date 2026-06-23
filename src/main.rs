@@ -38,6 +38,13 @@ async fn main() -> Result<()> {
 
     // Shared web state
     let web_state = WebState::new();
+    {
+        let mut state = web_state.app_state.write().await;
+        state.confidence_threshold = config.confidence_threshold as f64;
+        state.iou_threshold = config.iou_threshold as f64;
+        state.grace_period_seconds = config.grace_period_seconds;
+        state.auto_recording = true;
+    }
 
     // Create and run application
     let app = Application::new(config, web_state.clone()).await?;

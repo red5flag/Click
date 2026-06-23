@@ -33,6 +33,8 @@ pub struct VideoRecorder {
     current_writer: Option<VideoWriter>,
     current_path: Option<PathBuf>,
     frame_count: u64,
+    recording_active: bool,
+    start_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// Recording control commands
@@ -53,6 +55,8 @@ impl VideoRecorder {
             current_writer: None,
             current_path: None,
             frame_count: 0,
+            recording_active: false,
+            start_timestamp: None,
         }
     }
 
@@ -211,14 +215,19 @@ impl VideoRecorder {
         while let Some(cmd) = cmd_rx.recv().await {
             match cmd {
                 RecordingCommand::Start { timestamp } => {
-                    // Note: We'll get the first frame with WriteFrame
-                    // Just store the timestamp for when recording actually starts
-                    debug!("Recording start requested at {}", timestamp);
+                    self.recording_active = true;
+                    self.start_timestamp = Some(timestamp);
+                    info!("Recording start requested at {}", timestamp);
                 }
                 RecordingCommand::WriteFrame(frame) => {
-                    // Auto-start recording if needed
+                    if !self.recording_active {
+                        continue;
+                    }
+
+                    // Start a new recording on the first frame if no writer exists
                     if self.current_writer.is_none() {
-                        if let Err(e) = self.start_recording(frame.timestamp, &frame) {
+                        let timestamp = self.start_timestamp.unwrap_or(frame.timestamp);
+                        if let Err(e) = self.start_recording(timestamp, &frame) {
                             error!("Failed to start recording: {}", e);
                             continue;
                         }
@@ -229,6 +238,8 @@ impl VideoRecorder {
                     }
                 }
                 RecordingCommand::Stop => {
+                    self.recording_active = false;
+                    self.start_timestamp = None;
                     if let Err(e) = self.stop_recording() {
                         error!("Failed to stop recording: {}", e);
                     }

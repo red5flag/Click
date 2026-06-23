@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::info;
 
 use super::{WebState, ApiResponse};
 
@@ -42,18 +43,51 @@ pub struct ModelInfo {
     pub path: String,
     pub name: String,
     pub size_mb: f64,
+    pub model_type: String,
     pub input_shape: String,
     pub num_classes: i32,
+    pub version: String,
 }
 
 pub async fn list_models(State(_state): State<WebState>) -> Json<ApiResponse<Vec<ModelInfo>>> {
-    Json(ApiResponse::success(vec![ModelInfo {
-        path: "./models/model.onnx".to_string(),
-        name: "YOLO".to_string(),
-        size_mb: 6.2,
-        input_shape: "640x640".to_string(),
-        num_classes: 80,
-    }]))
+    let mut models = Vec::new();
+    if let Ok(entries) = std::fs::read_dir("./models") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) == Some("onnx") {
+                let name = path
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let size_mb = entry
+                    .metadata()
+                    .map(|m| m.len() as f64 / (1024.0 * 1024.0))
+                    .unwrap_or(0.0);
+                models.push(ModelInfo {
+                    path: path.display().to_string(),
+                    name: name.clone(),
+                    size_mb,
+                    model_type: "ONNX".to_string(),
+                    input_shape: "640x640".to_string(),
+                    num_classes: 80,
+                    version: name,
+                });
+            }
+        }
+    }
+    if models.is_empty() {
+        models.push(ModelInfo {
+            path: "./models/model.onnx".to_string(),
+            name: "YOLO".to_string(),
+            size_mb: 6.2,
+            model_type: "ONNX".to_string(),
+            input_shape: "640x640".to_string(),
+            num_classes: 80,
+            version: "yolo".to_string(),
+        });
+    }
+    Json(ApiResponse::success(models))
 }
 
 pub async fn load_model_handler(
@@ -71,20 +105,30 @@ pub struct DetectionSettings {
     pub grace_period_seconds: i32,
 }
 
-pub async fn get_detection_settings(State(_state): State<WebState>) -> Json<ApiResponse<DetectionSettings>> {
+pub async fn get_detection_settings(State(state): State<WebState>) -> Json<ApiResponse<DetectionSettings>> {
+    let app_state = state.app_state.read().await;
     Json(ApiResponse::success(DetectionSettings {
-        confidence_threshold: 0.5,
-        iou_threshold: 0.45,
-        grace_period_seconds: 10,
+        confidence_threshold: app_state.confidence_threshold,
+        iou_threshold: app_state.iou_threshold,
+        grace_period_seconds: app_state.grace_period_seconds as i32,
     }))
 }
 
 pub async fn set_detection_settings(
-    State(_state): State<WebState>,
+    State(state): State<WebState>,
     Json(settings): Json<DetectionSettings>,
-) -> Json<ApiResponse<()>> {
-    println!("Detection settings: {:?}", settings);
-    Json(ApiResponse::success(()))
+) -> Json<ApiResponse<DetectionSettings>> {
+    let mut app_state = state.app_state.write().await;
+    app_state.confidence_threshold = settings.confidence_threshold.clamp(0.0, 1.0);
+    app_state.iou_threshold = settings.iou_threshold.clamp(0.0, 1.0);
+    app_state.grace_period_seconds = settings.grace_period_seconds.max(0) as u64;
+    info!(
+        "Detection settings updated: confidence={:.2}, iou={:.2}, grace={}s",
+        app_state.confidence_threshold,
+        app_state.iou_threshold,
+        app_state.grace_period_seconds
+    );
+    Json(ApiResponse::success(settings))
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -111,8 +155,14 @@ pub async fn delete_tag_handler(State(_state): State<WebState>, Path(_id): Path<
     Json(ApiResponse::success(()))
 }
 
-pub async fn toggle_recording(State(_state): State<WebState>) -> Json<ApiResponse<bool>> {
-    Json(ApiResponse::success(true))
+pub async fn toggle_recording(State(state): State<WebState>) -> Json<ApiResponse<bool>> {
+    let new_state = {
+        let mut app_state = state.app_state.write().await;
+        app_state.manual_recording = !app_state.manual_recording;
+        app_state.manual_recording
+    };
+    info!("Manual recording toggled: {}", new_state);
+    Json(ApiResponse::success(new_state))
 }
 
 #[derive(Serialize, Default)]
@@ -131,6 +181,8 @@ pub struct SystemStats {
     pub fps: f64,
     pub inference_time: f64,
     pub recording: bool,
+    pub manual_recording: bool,
+    pub auto_recording: bool,
     pub storage_used: f64,
 }
 
@@ -139,10 +191,22 @@ pub async fn get_stats(State(state): State<WebState>) -> Json<ApiResponse<System
     Json(ApiResponse::success(SystemStats {
         persons_detected: app_state.persons_detected,
         fps: app_state.fps,
-        inference_time: 15.3,
+        inference_time: app_state.inference_time,
         recording: app_state.recording,
+        manual_recording: app_state.manual_recording,
+        auto_recording: app_state.auto_recording,
         storage_used: 45.2,
     }))
+}
+
+pub async fn toggle_auto_recording(State(state): State<WebState>) -> Json<ApiResponse<bool>> {
+    let new_state = {
+        let mut app_state = state.app_state.write().await;
+        app_state.auto_recording = !app_state.auto_recording;
+        app_state.auto_recording
+    };
+    info!("Auto-recording toggled: {}", new_state);
+    Json(ApiResponse::success(new_state))
 }
 
 pub async fn get_settings(State(_state): State<WebState>) -> Json<ApiResponse<HashMap<String, serde_json::Value>>> {

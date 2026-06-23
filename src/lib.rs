@@ -15,6 +15,8 @@ pub mod recording;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod types;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod night_vision;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod web;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

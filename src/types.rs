@@ -20,7 +20,7 @@ impl Detection {
         Self {
             center: Point2::new(cx, cy),
             dimensions: Vector2::new(w, h),
-            confidence,
+            confidence: confidence.clamp(0.0, 1.0),
             class_id,
         }
     }

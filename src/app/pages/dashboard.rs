@@ -33,7 +33,13 @@ pub fn Dashboard() -> impl IntoView {
     let toggle_recording = move |_| {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
-            let _ = reqwasm::http::Request::post("/api/recording/toggle").send().await;
+            if let Ok(resp) = reqwasm::http::Request::post("/api/recording/toggle").send().await {
+                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                    if let Some(v) = json.get("data").and_then(|v| v.as_bool()) {
+                        _set_recording.set(v);
+                    }
+                }
+            }
         });
     };
     

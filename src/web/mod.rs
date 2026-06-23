@@ -20,6 +20,12 @@ pub struct WebAppState {
     pub recording: bool,
     pub persons_detected: usize,
     pub fps: f64,
+    pub inference_time: f64,
+    pub manual_recording: bool,
+    pub auto_recording: bool,
+    pub confidence_threshold: f64,
+    pub iou_threshold: f64,
+    pub grace_period_seconds: u64,
 }
 
 #[derive(Clone, Default, Serialize)]
@@ -55,6 +61,7 @@ pub fn create_router(state: WebState) -> Router {
         .route("/api/tags", get(list_tags).post(create_tag))
         .route("/api/tags/{id}", delete(delete_tag_handler))
         .route("/api/recording/toggle", post(toggle_recording))
+        .route("/api/auto-recording/toggle", post(toggle_auto_recording))
         .route("/api/recordings", get(list_recordings))
         .route("/api/stats", get(get_stats))
         .route("/api/settings", get(get_settings).post(save_settings))

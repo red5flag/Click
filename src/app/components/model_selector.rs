@@ -13,6 +13,14 @@ pub struct ModelInfo {
     pub version: String,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[cfg(target_arch = "wasm32")]
+struct ApiResponse<T> {
+    success: bool,
+    data: Option<T>,
+    error: Option<String>,
+}
+
 #[component]
 pub fn ModelSelector() -> impl IntoView {
     let (models, _set_models) = signal::<Vec<ModelInfo>>(vec![]);
@@ -23,8 +31,10 @@ pub fn ModelSelector() -> impl IntoView {
         #[cfg(target_arch = "wasm32")]
         wasm_bindgen_futures::spawn_local(async move {
             if let Ok(resp) = reqwasm::http::Request::get("/api/models").send().await {
-                if let Ok(fetched) = resp.json::<Vec<ModelInfo>>().await {
-                    _set_models.set(fetched);
+                if let Ok(api) = resp.json::<ApiResponse<Vec<ModelInfo>>>().await {
+                    if let Some(fetched) = api.data {
+                        _set_models.set(fetched);
+                    }
                 }
             }
         });

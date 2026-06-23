@@ -70,9 +70,24 @@ impl Application {
     pub async fn run(self) -> Result<()> {
         info!("Starting application main loop");
 
+        // Auto-detect model file if the configured path doesn't exist
+        let mut model_path = self.config.model_path.clone();
+        if !std::path::Path::new(&model_path).exists() {
+            if let Ok(entries) = std::fs::read_dir("./models") {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()) == Some("onnx") {
+                        model_path = path.display().to_string();
+                        info!("Configured model not found, auto-detected: {}", model_path);
+                        break;
+                    }
+                }
+            }
+        }
+
         // Initialize YOLO model
         let model = Arc::new(YoloModel::new(
-            &self.config.model_path,
+            &model_path,
             self.config.confidence_threshold,
             self.config.iou_threshold,
         ).context("Failed to initialize YOLO model")?);
@@ -93,11 +108,15 @@ impl Application {
         let camera_config = CameraConfig::new(
             self.config.camera_index,
             self.config.max_channel_depth,
+            self.config.night_vision_enabled,
+            self.config.night_vision_threshold,
+            self.config.night_vision_history,
         );
         let camera = CameraCapture::new(camera_config, self.metrics.clone());
         let camera_shutdown = shutdown_signal.clone();
+        let recording_tx_camera = recording_tx.clone();
         let camera_handle = tokio::spawn(async move {
-            if let Err(e) = camera.run(frame_tx, camera_shutdown).await {
+            if let Err(e) = camera.run(frame_tx, recording_tx_camera, camera_shutdown).await {
                 error!("Camera task error: {}", e);
             }
         });
@@ -124,12 +143,14 @@ impl Application {
             self.config.grace_period_seconds,
         );
         let detection_shutdown = shutdown_signal.clone();
+        let detection_web_state = self.web_state.clone();
         let detection_handle = tokio::spawn(async move {
             Self::detection_task(
                 detection_config,
                 inference_rx,
                 recording_tx,
                 detection_shutdown,
+                detection_web_state,
             ).await
         });
 
@@ -231,14 +252,35 @@ impl Application {
             let inference_us = inference_start.elapsed().as_micros() as u64;
 
             match inference_result {
-                Ok(Ok(detections)) => {
+                Ok(Ok(all_detections)) => {
                     let inference_ms = inference_us as f64 / 1000.0;
+                    let fps = if inference_ms > 0.0 { 1000.0 / inference_ms } else { 0.0 };
 
                     metrics.record_frame_processed();
                     metrics.record_inference(inference_us, 0);
 
+                    // Use the threshold from the shared web state so it can be updated at runtime
+                    let confidence_threshold = {
+                        let state = web_state.app_state.read().await;
+                        state.confidence_threshold as f32
+                    };
+
+                    // Detections used by the recording state machine respect the configured threshold
+                    let threshold_detections: Vec<_> = all_detections
+                        .iter()
+                        .filter(|d| d.confidence >= confidence_threshold)
+                        .cloned()
+                        .collect();
+
+                    {
+                        let mut state = web_state.app_state.write().await;
+                        state.persons_detected = threshold_detections.len();
+                        state.fps = fps;
+                        state.inference_time = inference_ms;
+                    }
+
                     let result = InferenceResult {
-                        detections: detections.clone(),
+                        detections: threshold_detections,
                         inference_latency_ms: inference_ms,
                         nms_latency_ms: 0.0, // Included in infer
                         sequence,
@@ -251,7 +293,7 @@ impl Application {
 
                     // Publish frame + detections for the web stream
                     let frame_data = Arc::clone(&frame.data);
-                    let web_detections = detections
+                    let mut web_detections = all_detections
                         .iter()
                         .map(|d| DetectionBox {
                             id: format!("{}-{:.3}", sequence, d.confidence),
@@ -263,6 +305,10 @@ impl Application {
                             class_name: "person".to_string(),
                         })
                         .collect::<Vec<_>>();
+                    // Sort by confidence descending and cap at 100 boxes so the browser
+                    // does not get overwhelmed when showing all raw predictions.
+                    web_detections.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+                    web_detections.truncate(100);
                     let web_state_clone = web_state.clone();
                     tokio::spawn(async move {
                         let image = tokio::task::spawn_blocking(move || {
@@ -304,37 +350,102 @@ impl Application {
         mut inference_rx: mpsc::Receiver<InferenceResult>,
         recording_tx: mpsc::Sender<RecordingCommand>,
         shutdown: ShutdownSignal,
+        web_state: WebState,
     ) {
         info!("Detection task started");
 
         let mut state_machine = DetectionStateMachine::new(config);
         let mut recording_active = false;
+        let mut prev_manual = false;
 
         while let Some(result) = inference_rx.recv().await {
             if shutdown.is_shutdown() {
                 break;
             }
 
-            let transition = state_machine.process_inference(&result);
+            let (manual_recording, auto_recording) = {
+                let state = web_state.app_state.read().await;
+                (state.manual_recording, state.auto_recording)
+            };
+
+            let transition = if manual_recording {
+                prev_manual = true;
+                // Manual override: force recording state regardless of detections
+                if !state_machine.is_recording() {
+                    state_machine.force_recording();
+                    StateTransition::RecordingStarted
+                } else {
+                    StateTransition::RecordingContinued
+                }
+            } else if prev_manual {
+                // Manual recording just turned off
+                prev_manual = false;
+                if auto_recording {
+                    // Check if a person is actually detected above threshold
+                    let person_detected = result
+                        .detections
+                        .iter()
+                        .any(|d| d.confidence >= config.confidence_threshold);
+                    if person_detected {
+                        // Person present, continue in auto-recording mode
+                        state_machine.process_inference(&result)
+                    } else {
+                        // No person detected, stop immediately (no grace period)
+                        if state_machine.is_recording() {
+                            state_machine.force_idle();
+                            StateTransition::RecordingStopped
+                        } else {
+                            StateTransition::NoChange
+                        }
+                    }
+                } else {
+                    // Auto-recording disabled, stop immediately
+                    if state_machine.is_recording() {
+                        state_machine.force_idle();
+                        StateTransition::RecordingStopped
+                    } else {
+                        StateTransition::NoChange
+                    }
+                }
+            } else if auto_recording {
+                state_machine.process_inference(&result)
+            } else {
+                // Auto-recording disabled; stop if we were recording
+                if state_machine.is_recording() {
+                    state_machine.force_idle();
+                    StateTransition::RecordingStopped
+                } else {
+                    StateTransition::NoChange
+                }
+            };
 
             // Handle state transitions
             match transition {
                 StateTransition::RecordingStarted => {
-                    info!("Recording started - person detected");
+                    if manual_recording {
+                        info!("Recording started - manual override");
+                    } else {
+                        info!("Recording started - person detected");
+                    }
                     recording_active = true;
+                    {
+                        let mut state = web_state.app_state.write().await;
+                        state.recording = true;
+                    }
                     let _ = recording_tx.send(RecordingCommand::Start {
                         timestamp: chrono::Utc::now(),
                     }).await;
-
-                    // Also send first frame
-                    // This is handled by WriteFrame below
                 }
                 StateTransition::RecordingContinued => {
-                    // Continue recording - frames are sent below
+                    // Continue recording - frames are sent by the camera task
                 }
                 StateTransition::RecordingStopped => {
                     info!("Recording stopped - grace period expired");
                     recording_active = false;
+                    {
+                        let mut state = web_state.app_state.write().await;
+                        state.recording = false;
+                    }
                     let _ = recording_tx.send(RecordingCommand::Stop).await;
                 }
                 StateTransition::GracePeriodStarted => {

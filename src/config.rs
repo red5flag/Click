@@ -39,13 +39,22 @@ pub struct Config {
     pub recording_fps: f64,
     /// Performance metrics logging interval (seconds)
     pub metrics_interval_seconds: u64,
+    /// Enable automatic night vision adjustments
+    #[serde(default = "default_night_vision_enabled")]
+    pub night_vision_enabled: bool,
+    /// Brightness threshold (0-255) below which night vision is activated
+    #[serde(default = "default_night_vision_threshold")]
+    pub night_vision_threshold: u8,
+    /// Consecutive frames below/above threshold before switching night vision
+    #[serde(default = "default_night_vision_history")]
+    pub night_vision_history: usize,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             camera_index: 0,
-            confidence_threshold: 0.5,
+            confidence_threshold: 0.8,
             iou_threshold: 0.45,
             grace_period_seconds: 10,
             recordings_directory: "./recordings".to_string(),
@@ -54,8 +63,23 @@ impl Default for Config {
             video_codec: "h264".to_string(),
             recording_fps: 30.0,
             metrics_interval_seconds: 30,
+            night_vision_enabled: true,
+            night_vision_threshold: 60,
+            night_vision_history: 15,
         }
     }
+}
+
+fn default_night_vision_enabled() -> bool {
+    true
+}
+
+fn default_night_vision_threshold() -> u8 {
+    60
+}
+
+fn default_night_vision_history() -> usize {
+    15
 }
 
 impl Config {
@@ -105,7 +129,7 @@ impl Config {
     }
 
     /// Validate configuration values
-    fn validate(&self) -> Result<(), ConfigError> {
+    pub fn validate(&self) -> Result<(), ConfigError> {
         if !(0.0..=1.0).contains(&self.confidence_threshold) {
             return Err(ConfigError::Invalid(
                 format!("confidence_threshold must be between 0 and 1, got {}", self.confidence_threshold)
@@ -165,11 +189,11 @@ mod tests {
     fn test_default_config() {
         let config = Config::default();
         assert_eq!(config.camera_index, 0);
-        assert_eq!(config.confidence_threshold, 0.5);
+        assert_eq!(config.confidence_threshold, 0.8);
         assert_eq!(config.iou_threshold, 0.45);
         assert_eq!(config.grace_period_seconds, 10);
         assert_eq!(config.recordings_directory, "./recordings");
-        assert_eq!(config.max_channel_depth, 3);
+        assert_eq!(config.max_channel_depth, 16);
     }
 
     #[test]

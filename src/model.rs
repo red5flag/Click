@@ -9,6 +9,10 @@ use tract_onnx::prelude::*;
 use tract_core::framework::Framework;
 
 /// YOLO ONNX model handler
+fn sigmoid(x: f32) -> f32 {
+    1.0 / (1.0 + (-x).exp())
+}
+
 pub struct YoloModel {
     model: SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>,
     input_shape: Vec<usize>,
@@ -113,24 +117,50 @@ impl YoloModel {
             opencv::imgproc::INTER_LINEAR,
         )?;
 
-        // Normalize BGR to [0, 1] and convert to tensor format (HWC RGB)
+        // Normalize BGR to [0, 1] and convert to NCHW planar format
+        // Tensor layout: [R plane (H*W), G plane (H*W), B plane (H*W)]
         let mut tensor_data = vec![0.0f32; target_h * target_w * 3];
         let bgr_data = resized.data_bytes().unwrap_or(&[]);
+        let channel_size = target_h * target_w;
 
-        // Use rayon for parallel pixel processing without locking
-        tensor_data
-            .par_chunks_mut(target_w * 3)
+        // R channel (BGR offset +2)
+        tensor_data[..channel_size]
+            .par_chunks_mut(target_w)
+            .enumerate()
+            .for_each(|(row_idx, chunk)| {
+                let row_offset = row_idx * target_w * 3;
+                for col in 0..target_w {
+                    let src_idx = row_offset + col * 3 + 2;
+                    if src_idx < bgr_data.len() {
+                        chunk[col] = bgr_data[src_idx] as f32 / 255.0;
+                    }
+                }
+            });
+
+        // G channel (BGR offset +1)
+        tensor_data[channel_size..2 * channel_size]
+            .par_chunks_mut(target_w)
+            .enumerate()
+            .for_each(|(row_idx, chunk)| {
+                let row_offset = row_idx * target_w * 3;
+                for col in 0..target_w {
+                    let src_idx = row_offset + col * 3 + 1;
+                    if src_idx < bgr_data.len() {
+                        chunk[col] = bgr_data[src_idx] as f32 / 255.0;
+                    }
+                }
+            });
+
+        // B channel (BGR offset +0)
+        tensor_data[2 * channel_size..]
+            .par_chunks_mut(target_w)
             .enumerate()
             .for_each(|(row_idx, chunk)| {
                 let row_offset = row_idx * target_w * 3;
                 for col in 0..target_w {
                     let src_idx = row_offset + col * 3;
-                    let dst_idx = col * 3;
-                    if src_idx + 2 < bgr_data.len() {
-                        // Convert BGR to RGB and normalize
-                        chunk[dst_idx] = bgr_data[src_idx + 2] as f32 / 255.0;
-                        chunk[dst_idx + 1] = bgr_data[src_idx + 1] as f32 / 255.0;
-                        chunk[dst_idx + 2] = bgr_data[src_idx] as f32 / 255.0;
+                    if src_idx < bgr_data.len() {
+                        chunk[col] = bgr_data[src_idx] as f32 / 255.0;
                     }
                 }
             });
@@ -180,8 +210,10 @@ impl YoloModel {
             return Ok(Vec::new());
         }
 
-        // YOLOv8/YOLO12 output format: [batch, num_predictions, 85]
-        // where 85 = [x, y, w, h, confidence, 80 class scores]
+        // YOLOv8/YOLO12 output format: [batch, 84, num_predictions]
+        // where 84 = [x, y, w, h, 80 class scores]
+        // YOLOv5/v7 output format: [batch, num_predictions, 85]
+        // where 85 = [x, y, w, h, objectness, 80 class scores]
         let output = &outputs[0];
         let output_view = output.as_slice::<f32>().map_err(|e| anyhow::anyhow!("Failed to slice output: {}", e))?;
         let shape = output.shape();
@@ -193,35 +225,81 @@ impl YoloModel {
             ));
         }
 
-        let num_predictions = shape[1];
-        let num_classes = shape[2] - 5; // 85 - 5 = 80 for COCO
         let (img_h, img_w) = self.input_size();
+
+        // Detect output orientation: [batch, features, predictions] vs [batch, predictions, features]
+        let (num_predictions, num_features, num_classes, is_single_class) = if shape[1] < shape[2] {
+            // YOLOv8/YOLO12: [batch, 84, predictions]
+            let num_features = shape[1];
+            let num_predictions = shape[2];
+            let num_classes = num_features - 4;
+            let is_single_class = num_classes == 1;
+            (num_predictions, num_features, num_classes, is_single_class)
+        } else {
+            // YOLOv5/v7: [batch, predictions, 85]
+            let num_predictions = shape[1];
+            let num_features = shape[2];
+            let num_classes = num_features - 5;
+            // YOLOv5/v7 is always multi-class with objectness
+            (num_predictions, num_features, num_classes, false)
+        };
+
+        // Index function depends on tensor layout:
+        // [1, 84, 8400] -> value at (prediction, feature) = i + f * num_predictions
+        // [1, 8400, 85] -> value at (prediction, feature) = i * num_features + f
+        let features_last = shape[1] < shape[2];
+        let get = |i: usize, f: usize| -> f32 {
+            if features_last {
+                output_view[i + f * num_predictions]
+            } else {
+                output_view[i * num_features + f]
+            }
+        };
+
+        // Model output formats:
+        // Single-class (5 features): [x, y, w, h, conf] where conf is the objectness/confidence
+        // YOLOv8/YOLO12 multi-class: [x, y, w, h, class0, class1, ...] raw logits
+        // YOLOv5/v7 multi-class: [x, y, w, h, objectness, class0, class1, ...]
+        let (class_start, has_objectness) = if is_single_class {
+            (4, true)
+        } else if features_last {
+            (4, false)
+        } else {
+            (5, true)
+        };
+
+        tracing::info!(
+            "YOLO output shape {:?}: {} predictions, {} features, {} classes, single_class={}",
+            shape, num_predictions, num_features, num_classes, is_single_class
+        );
+
+        if !output_view.is_empty() {
+            tracing::info!(
+                "YOLO first pred: f0={:.3} f1={:.3} f2={:.3} f3={:.3} f4={:.3}",
+                get(0, 0),
+                get(0, 1),
+                get(0, 2),
+                get(0, 3),
+                get(0, 4),
+            );
+        }
 
         // Collect all detections (parallel processing)
         let mut detections: Vec<Detection> = (0..num_predictions)
             .into_par_iter()
             .filter_map(|i| {
-                let offset = i * shape[2];
-                
-                // Bounding box coordinates (normalized)
-                let x = output_view[offset];
-                let y = output_view[offset + 1];
-                let w = output_view[offset + 2];
-                let h = output_view[offset + 3];
-                
-                // Objectness confidence (YOLOv8 uses class-specific confidence directly)
-                let confidence = output_view[offset + 4];
-                
-                if confidence < self.confidence_threshold {
-                    return None;
-                }
+                // Bounding box coordinates
+                let x = get(i, 0);
+                let y = get(i, 1);
+                let w = get(i, 2);
+                let h = get(i, 3);
 
                 // Find class with highest score
                 let mut max_class = 0;
                 let mut max_score = 0.0f32;
-                
+
                 for c in 0..num_classes {
-                    let score = output_view[offset + 5 + c];
+                    let score = get(i, class_start + c);
                     if score > max_score {
                         max_score = score;
                         max_class = c;
@@ -234,8 +312,25 @@ impl YoloModel {
                 }
 
                 // Combined confidence
-                let combined_conf = confidence * max_score;
-                if combined_conf < self.confidence_threshold {
+                let combined_conf = if is_single_class {
+                    if features_last {
+                        // YOLOv8/YOLO12 single-class: raw class logit, apply sigmoid
+                        sigmoid(max_score)
+                    } else {
+                        // YOLOv5/v7 single-class: confidence already after sigmoid
+                        max_score
+                    }
+                } else if has_objectness {
+                    let objectness = get(i, 4);
+                    objectness * max_score
+                } else {
+                    // YOLOv8/YOLO12 export raw class logits; convert to probability
+                    sigmoid(max_score)
+                };
+
+                // Skip degenerate boxes (negative/zero dimensions) and clamp confidence
+                let combined_conf = combined_conf.clamp(0.0, 1.0);
+                if combined_conf < self.confidence_threshold || x <= 0.0 || y <= 0.0 || w <= 0.0 || h <= 0.0 {
                     return None;
                 }
 
@@ -254,8 +349,18 @@ impl YoloModel {
             b.confidence.partial_cmp(&a.confidence).unwrap()
         });
 
+        if let Some(d) = detections.first() {
+            tracing::info!(
+                "Top raw detection: cx={:.3} cy={:.3} w={:.3} h={:.3} conf={:.3}",
+                d.center.x, d.center.y, d.dimensions.x, d.dimensions.y, d.confidence
+            );
+        }
+        tracing::info!("Raw detections before NMS: {}", detections.len());
+
         // Apply NMS
         let filtered = self.apply_nms(detections);
+
+        tracing::info!("Detections after NMS: {}", filtered.len());
 
         Ok(filtered)
     }

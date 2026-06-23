@@ -5,33 +5,109 @@
     Blocking waiting for file lock on package cache
     Blocking waiting for file lock on package cache
     Blocking waiting for file lock on package cache
-    Finished `dev` profile [optimized + debuginfo] target(s) in 0.23s
-    Finished `dev` profile [optimized + debuginfo] target(s) in 0.24s
+   Compiling leptos v0.8.19
+   Compiling leptos v0.8.19
+   Compiling leptos_router v0.8.13
+   Compiling leptos_meta v0.8.6
+   Compiling leptos_router v0.8.13
+   Compiling leptos_meta v0.8.6
+   Compiling leptos_integration_utils v0.8.8
+   Compiling leptos_axum v0.8.9
+   Compiling person-detect v1.0.0 (/home/red/PersonDetect)
+   Compiling person-detect v1.0.0 (/home/red/PersonDetect)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 52.56s
 [38;5;77m       Cargo[0m finished [38;5;241mcargo build --package=person-detect --lib --target-dir=/home/red/PersonDetect/target/front --target=wasm32-unknown-unknown --no-default-features --features=csr[0m
 [38;5;77m       Front[0m generating JS/WASM with wasm-bindgen
+[38;5;77m    Finished[0m generating JS/WASM for front in 1.274999235s
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1m 26s
 [38;5;77m       Cargo[0m finished [38;5;241mcargo build --package=person-detect --bin=person-detect --no-default-features --features=ssr[0m
-[38;5;77m    Finished[0m generating JS/WASM for front in 222.04898ms
 [38;5;77m     Serving[0m at http://127.0.0.1:3000
 [38;5;77m    Creating[0m ignore list from '.gitignore' file
-[2m2026-06-20T15:40:51.893842Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m23:[0m Person Detection System Starting
-[2m2026-06-20T15:40:51.893857Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m24:[0m Version: 1.0.0
-[2m2026-06-20T15:40:51.893895Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m32:[0m Configuration loaded successfully
-[2m2026-06-20T15:40:51.893899Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m33:[0m Camera index: 0
-[2m2026-06-20T15:40:51.893902Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m34:[0m Confidence threshold: 0.5
-[2m2026-06-20T15:40:51.893906Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m35:[0m IoU threshold: 0.45
-[2m2026-06-20T15:40:51.893908Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m36:[0m Grace period: 10 seconds
-[2m2026-06-20T15:40:51.893910Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m37:[0m Recordings directory: ./recordings
-[2m2026-06-20T15:40:51.893919Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m52:[0m Application initialized
-[2m2026-06-20T15:40:51.893935Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m71:[0m Starting application main loop
-[2m2026-06-20T15:40:51.893941Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m28:[0m Loading YOLO model from: ./models/model.onnx
-[2m2026-06-20T15:40:51.894156Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect[0m[2m:[0m [2m94:[0m Web server listening on http://127.0.0.1:3000
-[2m2026-06-20T15:40:52.037707Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m79:[0m Model input shape: [1, 3, 640, 640]
-[2m2026-06-20T15:40:52.037726Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m80:[0m Model loaded successfully
-[2m2026-06-20T15:40:52.037977Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m81:[0m Model initialized: ModelInfo { input_shape: [1, 3, 640, 640], confidence_threshold: 0.5, iou_threshold: 0.45, target_class: 0 }
-[2m2026-06-20T15:40:52.038018Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::camera[0m[2m:[0m [2m42:[0m Initializing camera 0
-[2m2026-06-20T15:40:52.038038Z[0m [32m INFO[0m ThreadId(08) [2mperson_detect::app::application[0m[2m:[0m [2m308:[0m Detection task started
-[2m2026-06-20T15:40:52.038045Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::app::application[0m[2m:[0m [2m202:[0m Inference task started
-[2m2026-06-20T15:40:52.038050Z[0m [32m INFO[0m ThreadId(09) [2mperson_detect::recording[0m[2m:[0m [2m209:[0m Video recorder task started
-[ WARN:0@0.602] global cap_gstreamer.cpp:1777 open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
-[2m2026-06-20T15:40:52.491656Z[0m [32m INFO[0m ThreadId(03) [2mperson_detect::camera[0m[2m:[0m [2m58:[0m Camera opened: 640x480 @ 30.0 FPS
-[2m2026-06-20T15:40:52.491683Z[0m [32m INFO[0m ThreadId(03) [2mperson_detect::camera[0m[2m:[0m [2m74:[0m Camera capture started
+[2m2026-06-21T21:49:53.133537Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m23:[0m Person Detection System Starting
+[2m2026-06-21T21:49:53.133589Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m24:[0m Version: 1.0.0
+[2m2026-06-21T21:49:53.133724Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m32:[0m Configuration loaded successfully
+[2m2026-06-21T21:49:53.133730Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m33:[0m Camera index: 0
+[2m2026-06-21T21:49:53.133735Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m34:[0m Confidence threshold: 0.8
+[2m2026-06-21T21:49:53.133743Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m35:[0m IoU threshold: 0.45
+[2m2026-06-21T21:49:53.133747Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m36:[0m Grace period: 10 seconds
+[2m2026-06-21T21:49:53.133751Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect[0m[2m:[0m [2m37:[0m Recordings directory: ./recordings
+[2m2026-06-21T21:49:53.133775Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m52:[0m Application initialized
+[2m2026-06-21T21:49:53.133808Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m71:[0m Starting application main loop
+[2m2026-06-21T21:49:53.133849Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m32:[0m Loading YOLO model from: ./models/model.onnx
+[2m2026-06-21T21:49:53.134446Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect[0m[2m:[0m [2m101:[0m Web server listening on http://127.0.0.1:3000
+[2m2026-06-21T21:49:53.862187Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m83:[0m Model input shape: [1, 3, 640, 640]
+[2m2026-06-21T21:49:53.862241Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::model[0m[2m:[0m [2m84:[0m Model loaded successfully
+[2m2026-06-21T21:49:53.863517Z[0m [32m INFO[0m ThreadId(01) [2mperson_detect::app::application[0m[2m:[0m [2m96:[0m Model initialized: ModelInfo { input_shape: [1, 3, 640, 640], confidence_threshold: 0.8, iou_threshold: 0.45, target_class: 0 }
+[2m2026-06-21T21:49:53.863892Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::camera[0m[2m:[0m [2m57:[0m Initializing camera 0
+[2m2026-06-21T21:49:53.863959Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::app::application[0m[2m:[0m [2m223:[0m Inference task started
+[2m2026-06-21T21:49:53.863990Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::app::application[0m[2m:[0m [2m355:[0m Detection task started
+[2m2026-06-21T21:49:53.864006Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::recording[0m[2m:[0m [2m213:[0m Video recorder task started
+[ WARN:0@1.287] global cap_gstreamer.cpp:1777 open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+[2m2026-06-21T21:49:54.406093Z[0m [32m INFO[0m ThreadId(05) [2mperson_detect::camera[0m[2m:[0m [2m73:[0m Camera opened: 640x480 @ 30.0 FPS
+[2m2026-06-21T21:49:54.406162Z[0m [32m INFO[0m ThreadId(05) [2mperson_detect::camera[0m[2m:[0m [2m95:[0m Camera capture started
+[2m2026-06-21T21:49:55.240787Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::night_vision[0m[2m:[0m [2m81:[0m Low light detected (brightness 19), enabling night vision
+[ WARN:1@2.125] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[ WARN:1@2.125] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[2m2026-06-21T21:49:56.316784Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::night_vision[0m[2m:[0m [2m85:[0m Light level restored (brightness 140), disabling night vision
+[ WARN:2@3.201] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[ WARN:2@3.201] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[2m2026-06-21T21:49:56.512307Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:49:56.512369Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.658 f1=4.535 f2=7.181 f3=9.101 f4=0.000
+[2m2026-06-21T21:49:56.515914Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.705 cy=0.005 w=0.016 h=0.010 conf=0.500
+[2m2026-06-21T21:49:56.515981Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:49:57.120027Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5779
+[2m2026-06-21T21:49:59.649773Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:49:59.650085Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=4.088 f1=4.778 f2=8.003 f3=9.520 f4=0.000
+[2m2026-06-21T21:49:59.664292Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.569 cy=0.005 w=0.017 h=0.010 conf=0.500
+[2m2026-06-21T21:49:59.664358Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:00.304998Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 6005
+[2m2026-06-21T21:50:02.205113Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:02.205152Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.851 f1=6.389 f2=7.379 f3=12.380 f4=0.000
+[2m2026-06-21T21:50:02.207993Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.007 cy=0.992 w=0.016 h=0.017 conf=0.500
+[2m2026-06-21T21:50:02.208037Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:02.957791Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5877
+[2m2026-06-21T21:50:04.652037Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:04.652099Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=4.886 f1=7.857 f2=9.562 f3=20.729 f4=0.000
+[2m2026-06-21T21:50:04.657117Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.056 cy=0.831 w=0.110 h=0.349 conf=0.500
+[2m2026-06-21T21:50:04.657167Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:04.904354Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 3205
+[2m2026-06-21T21:50:06.926871Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:06.926938Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.289 f1=5.619 f2=6.361 f3=11.020 f4=0.000
+[2m2026-06-21T21:50:06.931212Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.996 cy=0.121 w=0.009 h=0.102 conf=0.500
+[2m2026-06-21T21:50:06.931281Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:07.464993Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5437
+[2m2026-06-21T21:50:07.968929Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::web::handlers[0m[2m:[0m [2m164:[0m Manual recording toggled: true
+[2m2026-06-21T21:50:09.735676Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:09.735789Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.342 f1=6.395 f2=6.426 f3=12.595 f4=0.000
+[2m2026-06-21T21:50:09.739876Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.996 cy=0.990 w=0.013 h=0.022 conf=0.500
+[2m2026-06-21T21:50:09.739931Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:10.434471Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5699
+[2m2026-06-21T21:50:10.440987Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::app::application[0m[2m:[0m [2m394:[0m Recording started - manual override
+[2m2026-06-21T21:50:10.441051Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::recording[0m[2m:[0m [2m220:[0m Recording start requested at 2026-06-21 21:50:10.441033973 UTC
+[2m2026-06-21T21:50:10.445041Z[0m [32m INFO[0m ThreadId(05) [2mperson_detect::recording[0m[2m:[0m [2m119:[0m Starting recording: ./recordings/2026-06-21_21-50-10.mp4
+[2m2026-06-21T21:50:10.492073Z[0m [32m INFO[0m ThreadId(05) [2mperson_detect::recording[0m[2m:[0m [2m171:[0m Recording started successfully
+[2m2026-06-21T21:50:12.781723Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:12.781775Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.951 f1=7.123 f2=7.585 f3=13.957 f4=0.000
+[2m2026-06-21T21:50:12.783752Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.007 cy=0.992 w=0.014 h=0.017 conf=0.500
+[2m2026-06-21T21:50:12.783812Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:13.409163Z[0m [32m INFO[0m ThreadId(28) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5779
+[2m2026-06-21T21:50:13.724085Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::night_vision[0m[2m:[0m [2m81:[0m Low light detected (brightness 6), enabling night vision
+[ WARN:1@20.608] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[ WARN:1@20.608] global cap_gstreamer.cpp:2152 setProperty OpenCV | GStreamer warning: GStreamer: unhandled property
+[2m2026-06-21T21:50:15.494877Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:15.494929Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=3.280 f1=5.730 f2=6.342 f3=11.330 f4=0.000
+[2m2026-06-21T21:50:15.497621Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.996 cy=0.992 w=0.013 h=0.019 conf=0.500
+[2m2026-06-21T21:50:15.497693Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:15.837996Z[0m [32m INFO[0m ThreadId(13) [2mperson_detect::web::handlers[0m[2m:[0m [2m164:[0m Manual recording toggled: false
+[2m2026-06-21T21:50:16.101864Z[0m [32m INFO[0m ThreadId(27) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 5734
+[2m2026-06-21T21:50:16.106175Z[0m [32m INFO[0m ThreadId(12) [2mperson_detect::detection[0m[2m:[0m [2m114:[0m Person left, starting grace period (10 seconds)
+[2m2026-06-21T21:50:18.208203Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:18.208265Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=8.682 f1=20.678 f2=17.082 f3=42.084 f4=0.000
+[2m2026-06-21T21:50:18.212565Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.089 cy=0.801 w=0.176 h=0.403 conf=0.500
+[2m2026-06-21T21:50:18.212625Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:18.382770Z[0m [32m INFO[0m ThreadId(14) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 1645
+[2m2026-06-21T21:50:21.033219Z[0m [32m INFO[0m ThreadId(29) [2mperson_detect::model[0m[2m:[0m [2m245:[0m YOLO output shape [1, 5, 8400]: 8400 predictions, 5 features, 1 classes, single_class=true
+[2m2026-06-21T21:50:21.033480Z[0m [32m INFO[0m ThreadId(29) [2mperson_detect::model[0m[2m:[0m [2m251:[0m YOLO first pred: f0=8.682 f1=20.678 f2=17.082 f3=42.084 f4=0.000
+[2m2026-06-21T21:50:21.038627Z[0m [32m INFO[0m ThreadId(29) [2mperson_detect::model[0m[2m:[0m [2m327:[0m Top raw detection: cx=0.089 cy=0.801 w=0.176 h=0.403 conf=0.500
+[2m2026-06-21T21:50:21.038705Z[0m [32m INFO[0m ThreadId(29) [2mperson_detect::model[0m[2m:[0m [2m332:[0m Raw detections before NMS: 8400
+[2m2026-06-21T21:50:21.215789Z[0m [32m INFO[0m ThreadId(29) [2mperson_detect::model[0m[2m:[0m [2m337:[0m Detections after NMS: 1645

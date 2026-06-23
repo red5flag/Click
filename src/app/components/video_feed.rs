@@ -14,14 +14,21 @@ pub fn VideoFeed() -> impl IntoView {
     let (stream_active, set_stream_active) = signal(false);
     let (frame_data, set_frame_data) = signal::<Option<String>>(None);
     let (detections, set_detections) = signal::<Vec<DetectionBox>>(vec![]);
+    let (recording, set_recording) = signal(false);
+    let (auto_recording, set_auto_recording) = signal(true);
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
     #[cfg(target_arch = "wasm32")]
-    manage_websocket(stream_active, set_frame_data, set_detections);
+    {
+        manage_websocket(stream_active, set_frame_data, set_detections);
+        poll_recording_state(set_recording, set_auto_recording);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     {
         let _ = set_frame_data;
         let _ = set_detections;
+        let _ = set_recording;
+        let _ = set_auto_recording;
     }
     
     Effect::new(move |_| {
@@ -41,6 +48,20 @@ pub fn VideoFeed() -> impl IntoView {
             }
         }
     });
+
+    let toggle_recording = move |_| {
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = reqwasm::http::Request::post("/api/recording/toggle").send().await;
+        });
+    };
+
+    let toggle_auto_recording = move |_| {
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = reqwasm::http::Request::post("/api/auto-recording/toggle").send().await;
+        });
+    };
     
     view! {
         <div class="video-feed-container">
@@ -53,10 +74,29 @@ pub fn VideoFeed() -> impl IntoView {
                     >
                         {move || if stream_active.get() { "Stop Stream" } else { "Start Stream" }}
                     </button>
+                    <button
+                        class={move || if recording.get() { "btn-stop" } else { "btn-primary" }}
+                        on:click=toggle_recording
+                    >
+                        {move || if recording.get() { "Stop Recording" } else { "Start Recording" }}
+                    </button>
                     <button class="btn-secondary" on:click=take_snapshot>
                         "Snapshot"
                     </button>
                 </div>
+            </div>
+
+            <div class="video-recording-controls">
+                <label class="switch-label">
+                    <span class="switch">
+                        <input type="checkbox" checked=move || auto_recording.get() on:change=toggle_auto_recording/>
+                        <span class="slider"></span>
+                    </span>
+                    "Auto-recording"
+                </label>
+                <Show when=move || !auto_recording.get()>
+                    <span class="recording-disabled-hint">"Manual recording only"</span>
+                </Show>
             </div>
             
             <div class="video-wrapper">
@@ -68,6 +108,12 @@ pub fn VideoFeed() -> impl IntoView {
                     class="video-canvas"
                 />
                 <DetectionOverlay detections=detections/>
+                <Show when=move || recording.get()>
+                    <div class="rec-indicator">
+                        <span class="rec-dot"></span>
+                        <span class="rec-text">"REC"</span>
+                    </div>
+                </Show>
                 <Show when=move || !stream_active.get()>
                     <div class="stream-placeholder">
                         <span>"Stream inactive"</span>
@@ -85,6 +131,30 @@ pub fn VideoFeed() -> impl IntoView {
             </div>
         </div>
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn poll_recording_state(
+    set_recording: WriteSignal<bool>,
+    set_auto_recording: WriteSignal<bool>,
+) {
+    Effect::new(move |_| {
+        wasm_bindgen_futures::spawn_local(async move {
+            loop {
+                if let Ok(resp) = reqwasm::http::Request::get("/api/stats").send().await {
+                    if let Ok(stats) = resp.json::<serde_json::Value>().await {
+                        if let Some(v) = stats.get("recording").and_then(|v| v.as_bool()) {
+                            set_recording.set(v);
+                        }
+                        if let Some(v) = stats.get("auto_recording").and_then(|v| v.as_bool()) {
+                            set_auto_recording.set(v);
+                        }
+                    }
+                }
+                gloo_timers::future::TimeoutFuture::new(1000).await;
+            }
+        });
+    });
 }
 
 #[cfg(target_arch = "wasm32")]

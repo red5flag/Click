@@ -66,12 +66,19 @@ impl DetectionStateMachine {
 
     /// Process inference result and update state
     pub fn process_inference(&mut self, result: &InferenceResult) -> StateTransition {
-        let person_detected = !result.detections.is_empty();
+        let person_detected = result
+            .detections
+            .iter()
+            .any(|d| d.confidence >= self.config.confidence_threshold);
         let now = Instant::now();
 
         if person_detected {
             self.last_detection_time = Some(now);
-            self.person_count = result.detections.len();
+            self.person_count = result
+                .detections
+                .iter()
+                .filter(|d| d.confidence >= self.config.confidence_threshold)
+                .count();
         }
 
         let transition = match self.state {
@@ -165,6 +172,20 @@ impl DetectionStateMachine {
         )
     }
 
+    /// Force the state machine into active recording (manual override)
+    pub fn force_recording(&mut self) {
+        if !self.is_recording() {
+            self.state = RecordingState::Recording;
+            self.recording_start_time = Some(Instant::now());
+        }
+    }
+
+    /// Force the state machine back to idle (manual override cancelled)
+    pub fn force_idle(&mut self) {
+        self.state = RecordingState::Idle;
+        self.recording_start_time = None;
+    }
+
     /// Check if recording just started (first frame)
     pub fn is_recording_start(&self, transition: &StateTransition) -> bool {
         matches!(transition, StateTransition::RecordingStarted)
@@ -241,7 +262,7 @@ mod tests {
         // Person leaves - should immediately stop with 0s grace
         let result = create_result(vec![]);
         std::thread::sleep(Duration::from_millis(10));
-        let transition = fsm.process_inference(&result);
+        let _transition = fsm.process_inference(&result);
         
         // With 0 grace period, should stop immediately
         // Note: actual behavior depends on timing

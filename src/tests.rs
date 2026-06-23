@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::detection::{DetectionConfig, DetectionStateMachine, StateTransition};
+#[cfg(feature = "integration-tests")]
 use crate::model::YoloModel;
 use crate::types::{Detection, InferenceResult, RecordingState};
 use tempfile::TempDir;
@@ -204,11 +205,11 @@ fn test_state_machine_recording_duration() {
 fn test_config_default() {
     let config = config::Config::default();
     assert_eq!(config.camera_index, 0);
-    assert_eq!(config.confidence_threshold, 0.5);
+    assert_eq!(config.confidence_threshold, 0.8);
     assert_eq!(config.iou_threshold, 0.45);
     assert_eq!(config.grace_period_seconds, 10);
     assert_eq!(config.recordings_directory, "./recordings");
-    assert_eq!(config.max_channel_depth, 3);
+    assert_eq!(config.max_channel_depth, 16);
 }
 
 #[test]

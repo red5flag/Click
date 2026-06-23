@@ -1,3 +1,5 @@
+use crate::night_vision::NightVision;
+use crate::recording::RecordingCommand;
 use crate::types::{Frame, ShutdownSignal};
 use anyhow::{Context, Result};
 use opencv::prelude::*;
@@ -11,13 +13,25 @@ use tracing::{debug, error, info, warn};
 pub struct CameraConfig {
     pub camera_index: i32,
     pub max_channel_depth: usize,
+    pub night_vision_enabled: bool,
+    pub night_vision_threshold: u8,
+    pub night_vision_history: usize,
 }
 
 impl CameraConfig {
-    pub fn new(camera_index: i32, max_channel_depth: usize) -> Self {
+    pub fn new(
+        camera_index: i32,
+        max_channel_depth: usize,
+        night_vision_enabled: bool,
+        night_vision_threshold: u8,
+        night_vision_history: usize,
+    ) -> Self {
         Self {
             camera_index,
             max_channel_depth,
+            night_vision_enabled,
+            night_vision_threshold,
+            night_vision_history,
         }
     }
 }
@@ -37,6 +51,7 @@ impl CameraCapture {
     pub async fn run(
         self,
         frame_tx: mpsc::Sender<Frame>,
+        recording_tx: mpsc::Sender<RecordingCommand>,
         shutdown: ShutdownSignal,
     ) -> Result<()> {
         info!("Initializing camera {}", self.config.camera_index);
@@ -70,6 +85,12 @@ impl CameraCapture {
         let frame_buffer = opencv::core::Mat::default();
         let frame_buffer = std::sync::Arc::new(std::sync::Mutex::new(frame_buffer));
         let shutdown_rx = shutdown.subscribe();
+
+        let mut night_vision = NightVision::new(
+            self.config.night_vision_enabled,
+            self.config.night_vision_threshold,
+            self.config.night_vision_history,
+        );
 
         info!("Camera capture started");
 
@@ -110,17 +131,23 @@ impl CameraCapture {
                         Frame::new(fb.clone(), sequence)
                     };
 
-                    // Send with backpressure - this naturally throttles camera
-                    // to match inference speed, avoiding frame drops
-                    let send_fut = frame_tx.send(frame);
-                    tokio::pin!(send_fut);
-                    tokio::select! {
-                        _ = &mut send_fut => {
-                            debug!("Frame {} sent to inference pipeline", sequence);
-                        }
-                        _ = tokio::time::sleep(tokio::time::Duration::from_secs(5)) => {
-                            warn!("Frame {} send timed out (5s), inference too slow", sequence);
-                        }
+                    // Automatic night vision based on frame brightness
+                    {
+                        let mut cap = cap.lock().unwrap();
+                        night_vision.process_frame(frame.data.as_ref(), &mut *cap);
+                    }
+
+                    // Clone frame for recorder and send to inference pipeline.
+                    // Use non-blocking sends so the camera keeps reading at full
+                    // frame rate regardless of inference speed.
+                    let recorder_frame = frame.clone_frame();
+                    if let Err(e) = frame_tx.try_send(frame) {
+                        debug!("Frame {} dropped from inference pipeline: {}", sequence, e);
+                    } else {
+                        debug!("Frame {} sent to inference pipeline", sequence);
+                    }
+                    if let Err(e) = recording_tx.try_send(RecordingCommand::WriteFrame(recorder_frame)) {
+                        warn!("Frame {} dropped from recorder pipeline: {}", sequence, e);
                     }
                 }
                 Ok(Ok(false)) => {
